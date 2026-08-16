@@ -107,7 +107,7 @@ Segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified l
 Two smaller design decisions recorded in F-7: `load_template_section` **raises** on an unknown bucket where `relayops-prod` fell back to the whole document (which hands the model every segment's copy, discounts included, and invites it to pick); and the VIP cutoff returns 0 below five known spends rather than inventing a tier from a four-client book.
 
 ### GAP-006 — No async fabric
-**Category:** implementation · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-6](CLAUDE.md#f-6)
+**Category:** implementation · **Status:** **CLOSED (78b7a8c)** · **Spec:** [F-6](CLAUDE.md#f-6)
 
 Publisher job → Pub/Sub (`relayops.campaign.run`, topics created) → push worker, with an explicit DLQ and replay-safe writes. Verified end to end against Cloud SQL and live Gemini on the synthetic demo tenant:
 
