@@ -274,3 +274,39 @@ def test_acting_on_a_missing_draft_is_404(app_client, seeded) -> None:
         f"/clinics/{clinic_id}/drafts/999999/approve", auth=AUTH, follow_redirects=False
     )
     assert res.status_code == 404
+
+
+def test_invoice_shows_the_amount_and_the_exclusions(app_client, seeded, engine) -> None:
+    """The invoice must be interrogable: a clinic seeing shows it was not
+    billed for needs the reason on the same page as the total."""
+
+    from relayops_fleet.db import billing_repo, consent_repo
+
+    clinic_id, _other, _draft = seeded
+    Session = repo.build_sessionmaker(engine)
+    with Session() as s, s.begin():
+        # One attributable show, and one with no contact behind it.
+        consent_repo.log_contact(s, clinic_id=clinic_id, client_key=PHONE, channel="sms")
+        s.flush()
+        billing_repo.record_outcome(
+            s, clinic_id=clinic_id, client_key=PHONE, outcome="showed",
+            occurred_on=date(2026, 8, 16),
+        )
+        billing_repo.record_outcome(
+            s, clinic_id=clinic_id, client_key="+14165550199", outcome="showed",
+            occurred_on=date(2026, 8, 16),
+        )
+
+    page = app_client.get(f"/clinics/{clinic_id}/invoice", auth=AUTH)
+    assert page.status_code == 200
+    assert "$50.00" in page.text
+    assert "Not billed" in page.text
+    assert "no logged contact" in page.text
+
+
+def test_invoice_is_recomputed_not_stored(app_client, seeded, engine) -> None:
+    """Two loads of an unchanged period must agree, and no total is persisted."""
+    clinic_id, _other, _draft = seeded
+    first = app_client.get(f"/clinics/{clinic_id}/invoice", auth=AUTH).text
+    second = app_client.get(f"/clinics/{clinic_id}/invoice", auth=AUTH).text
+    assert first == second

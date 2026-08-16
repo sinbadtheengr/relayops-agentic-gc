@@ -9,6 +9,7 @@
        href="/clinics/{{ clinic.id }}/drafts?status_filter={{ s }}">{{ s }} ({{ counts[s] }})</a>
   {% endfor %}
   <a class="tab" href="/clinics/{{ clinic.id }}/skipped">not contacted</a>
+  <a class="tab" href="/clinics/{{ clinic.id }}/invoice">invoice</a>
 </div>
 
 {% for d in drafts %}

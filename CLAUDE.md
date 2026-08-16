@@ -219,7 +219,11 @@ Rule-gated clients also get a row (`decided_by='rule'`, `model=''`, `tokens=0`, 
 ---
 
 ## F-11 — Attribution and billing
-**Closes:** GAP-004 · **Milestone:** M5 · **File:** `core/attribution.py`
+**Closes:** part of GAP-004 · **Milestone:** M5 · **Status 2026-08-16: COMPLETE**
+
+**Rule the source could not settle:** outcomes carry a date, contacts carry a timestamp, so same-day ordering is unknowable. **Same-day contact counts as prior** — excluding it would systematically under-bill the campaigns that worked best. Stated and tested, not silently resolved.
+
+**The first show is the billable one**, not the latest: otherwise correcting an early appointment silently moves the charge. · **File:** `core/attribution.py`
 **Port from:** `relayops-prod` `src/relayops/attribution.py` (plus `tests/test_attribution.py`)
 
 Computed, never stored. A show bills when a logged contact preceded it within `ATTRIBUTION_WINDOW_DAYS` (30). Each billable line names the contact that earned it and the gap in days.

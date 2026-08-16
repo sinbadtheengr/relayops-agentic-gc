@@ -70,7 +70,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-9 done (2026-08-16):** clinic-supplied free text screened in two layers — a deterministic offline screen that always runs, plus a Model Armor template that fails closed. Verified live: the seeded injection is blocked and recorded, a benign staff note is used. Per-role service accounts from F-12 complete the governance layer.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Memory Bank (contingent on the track decision).
+**F-11 done (2026-08-16):** billing computed from the append-only outcome log, never stored — every billable line names the contact that earned it and the gap in days, and every exclusion carries its reason. Per client once, capped at $1,500. The `/invoice` route shows inclusions and exclusions on the same page. 17 tests.
+
+**Not built:** `core/importer.py` (F-3), Memory Bank (contingent on the track decision).
 
 ## 6. Goals
 

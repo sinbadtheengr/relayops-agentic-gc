@@ -86,9 +86,14 @@ Now enforced in three layers rather than by convention:
 **Category:** implementation · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-3](CLAUDE.md#f-3), [F-5](CLAUDE.md#f-5), [F-7](CLAUDE.md#f-7), [F-11](CLAUDE.md#f-11)
 
 **Done:** `core/casl.py` (F-5) — CASL repair plus the VIP-discount and overclaim guards. `core/features.py` + `core/templates.py` (F-7) — lapse buckets, per-clinic VIP cutoff, approved-template selection.
-**Still stubs:** `importer.py` (F-3), `attribution.py` (F-11). Both have tested equivalents in `relayops-prod`; this is porting, not design.
+**Also done:** `core/attribution.py` + `db/billing_repo.py` (F-11) — computed billing with 17 tests, plus the `/clinics/{id}/invoice` route F-8 deferred here.
+**Still a stub:** `importer.py` (F-3). It has a tested equivalent in `relayops-prod`; this is porting, not design.
 
-**Impact of what remains:** no way to load a clinic's export, and no invoice to defend.
+**One rule F-11 had to settle that the source could not.** `outreach_outcomes.occurred_on` is a date while `contact_log.contacted_at` is a timestamp, so same-day ordering is unknowable from the data. Same-day contact **counts as prior**: texted in the morning and came in the afternoon is the best outcome this product produces, and excluding it would systematically under-bill the campaigns that worked best. The rule is stated in the docstring and pinned by a test rather than silently resolved.
+
+The first show is the billable one, not the latest — otherwise a correction to an early appointment would silently move the charge.
+
+**Impact of what remains:** no way to load a clinic's export. Everything else in the deterministic core is built and tested.
 **Fix:** M2, and port the tests with the code.
 
 **Calibration note carried forward.** The inherited guard regex was mis-tuned for the models actually in use: `\bdiscount\b` matches inside *"non-discount"* and `\bincentive\b` inside *"no incentive"* — both compliant phrases that `gemini-3.7-flash` and `gemini-3.6-flash` produced during F-1. Porting it unchanged would have badged the phrasing the current models favour. Negated offers and hedged claims are now stripped before matching. A guard that flags correct copy is worse than no guard: reviewers learn to click past the badge and then miss the real one.

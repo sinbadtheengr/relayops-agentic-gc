@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Invoice — {{ clinic.name }}</h1>
+<p class="sub">Computed from the outcome log every time this page loads. Nothing here is stored.</p>
+
+<div class="card">
+  <div style="font-size:26px;font-weight:700">{{ money(summary.amount_cents) }}</div>
+  <div class="meta">
+    {{ summary.billable|length }} attributable show{{ '' if summary.billable|length == 1 else 's' }}
+    × {{ money(summary.fee_cents) }} = {{ money(summary.gross_cents) }}
+    {% if summary.capped %}
+      · <strong>capped</strong> at {{ money(summary.cap_cents) }}
+      (waived {{ money(summary.waived_cents) }})
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <strong>Billable — each line names the contact that earned it</strong>
+  <table style="margin-top:10px">
+    <tr><th>client</th><th>showed</th><th>earned by</th><th>gap</th></tr>
+    {% for b in summary.billable %}
+      <tr>
+        <td>{{ b.client_name }}</td>
+        <td>{{ b.occurred_on }}</td>
+        <td>{{ b.channel }} on {{ b.contacted_on }}</td>
+        <td>{{ b.days_after_contact }}d</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">Nothing attributable in this period.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <strong>Not billed — and why</strong>
+  <div class="meta" style="margin:4px 0 10px">
+    A clinic seeing eight shows and a bill for three needs to know why five did not count.
+  </div>
+  <table>
+    <tr><th>client</th><th>date</th><th>outcome</th><th>reason</th></tr>
+    {% for e in summary.excluded %}
+      <tr>
+        <td>{{ e.client_name }}</td>
+        <td>{{ e.occurred_on }}</td>
+        <td>{{ e.outcome }}</td>
+        <td>{{ e.reason }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">Nothing excluded.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<p><a class="tab" href="/clinics/{{ clinic.id }}/drafts">Back to drafts</a></p>
+{% endblock %}

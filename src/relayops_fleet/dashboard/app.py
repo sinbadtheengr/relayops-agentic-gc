@@ -32,7 +32,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..db import consent_repo, dashboard_repo
+from ..core.attribution import money
+from ..db import billing_repo, consent_repo, dashboard_repo
 from ..db.campaign_repo import active_clinics
 from ..db.models import Clinic
 from ..db.repo import build_engine, build_sessionmaker, unguarded
@@ -187,6 +188,31 @@ def skipped(
             "clinic": clinic,
             "rows": dashboard_repo.skipped_clients(session, clinic_id=clinic_id),
             "reason_counts": dashboard_repo.gate_reason_counts(session, clinic_id=clinic_id),
+        },
+    )
+
+
+@app.get("/clinics/{clinic_id}/invoice", response_class=HTMLResponse)
+def invoice(
+    request: Request,
+    clinic_id: int,
+    _operator: Annotated[str, Depends(require_operator)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    """What this clinic owes, recomputed from the outcome log on every load.
+
+    Nothing on this page is stored. A stored total would drift the moment a
+    contact or an outcome was corrected, and the clinic would be arguing with
+    a number nobody could reproduce.
+    """
+    clinic = _clinic_or_404(session, clinic_id)
+    return TEMPLATES.TemplateResponse(
+        request,
+        "invoice.html",
+        {
+            "clinic": clinic,
+            "summary": billing_repo.billing_summary(session, clinic_id=clinic_id),
+            "money": money,
         },
     )
 
