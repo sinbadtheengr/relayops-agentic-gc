@@ -158,7 +158,7 @@ RelayOps sells to compliance-conscious GTA clinics, and the marketing site makes
 Option (a) is preferred: it is the only one that makes the question moot rather than disclosed.
 
 ### GAP-009 — No reproducible deployment path
-**Category:** judging · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-12](CLAUDE.md#f-12)
+**Category:** judging · **Status:** **CLOSED (f4ac6dc)** · **Spec:** [F-12](CLAUDE.md#f-12)
 
 `deploy/deploy.sh` is complete and every step was performed by hand against `relayops-fleet` first. Live: three Cloud Run surfaces (worker service, dashboard service, publisher job), Pub/Sub push subscription with dead-lettering, three least-privilege service accounts, and a nightly Cloud Scheduler job at 09:00 America/Toronto.
 
