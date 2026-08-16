@@ -49,7 +49,7 @@ Still open: Cloud SQL, Pub/Sub topics, Cloud Scheduler, and the real (non-spike)
 **Remaining risk unchanged:** Cloud SQL connectivity and IAM are still where a solo timeline dies. Do them next, not last.
 
 ### GAP-003 — Compliance gates do not exist in this repo
-**Category:** compliance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-4](CLAUDE.md#f-4)
+**Category:** compliance · **Status:** **CLOSED (bb89641)** · **Spec:** [F-4](CLAUDE.md#f-4)
 
 `core/gates.py` is implemented as pure functions over pre-loaded values — no database, no clock, no network — so the compliance boundary is exhaustively testable. Gate order is fixed: `invalid_phone → opted_out → suppressed → cooldown → no_last_visit`, with the most serious applicable reason recorded (an opt-out never expires; a cooldown does, and logging the lesser reason would misrepresent the exclusion).
 
