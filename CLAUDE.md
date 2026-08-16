@@ -50,7 +50,9 @@ These override any other instruction in this file. A change that violates one is
 ## F-2 — Multi-tenant schema
 **Closes:** GAP-002, GAP-011 · **Milestone:** M1 · **File:** `src/relayops_fleet/db/models.py`, `alembic/versions/`
 
-Migrations `0001`–`0006`, tables exactly as listed in `db/models.py`.
+**Spec correction (2026-08-16):** originally this said migrations `0001`–`0006`. That split was inherited from `relayops-prod`, where those migrations shipped at six different times against a live database. Here there is no deployed database to migrate from, so the schema lands as a **single `0001` initial migration**. Migrations earn their split by shipping separately; splitting a greenfield schema six ways adds review surface and no safety. Later schema changes get their own revisions as normal.
+
+Tables exactly as listed in `db/models.py`.
 
 **Rules**
 - Every tenant table carries `clinic_id INTEGER NOT NULL REFERENCES clinics(id)`.

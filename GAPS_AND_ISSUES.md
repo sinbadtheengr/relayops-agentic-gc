@@ -26,7 +26,7 @@
 ## Critical
 
 ### GAP-001 — Gemini 3.5 availability on Vertex is unverified
-**Category:** qualification · **Status:** **RESOLVED 2026-08-15** (uncommitted; set to `CLOSED (<commit>)` on first commit) · **Spec:** [F-1](CLAUDE.md#f-1)
+**Category:** qualification · **Status:** **CLOSED (89aa3ec)** · **Spec:** [F-1](CLAUDE.md#f-1)
 **Evidence:** [docs/F1-qualification-evidence.md](docs/F1-qualification-evidence.md) · **Reproduce:** `PYTHONPATH=src python scripts/spike_f1.py`
 
 The assumption was wrong in two ways, both caught before anything was built on it:
@@ -57,12 +57,20 @@ Still open: Cloud SQL, Pub/Sub topics, Cloud Scheduler, and the real (non-spike)
 **Fix:** port `relayops-prod` `src/relayops/consent.py:28-121`. Opt-outs global, cooldown per clinic.
 
 ### GAP-011 — No tenant isolation enforcement
-**Category:** data integrity · **Status:** OPEN · **Spec:** [F-2](CLAUDE.md#f-2)
+**Category:** data integrity · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-2](CLAUDE.md#f-2)
+**Verified against Cloud SQL:** migration `0001` applied; 9 tables, 58 CHECK constraints live; 33 tests green including 9 integration tests.
 
-Multi-tenancy is the architectural claim of the submission, and nothing enforces it yet. In `relayops-prod` this exact bug was real: `client_decisions.client_key` was globally unique on the phone number, so two clinics sharing a customer silently overwrote each other's decision, and one clinic's outreach put the other's same-phone customer into cooldown.
+Multi-tenancy is the architectural claim of the submission. In `relayops-prod` this exact bug was real: `client_decisions.client_key` was globally unique on the phone number, so two clinics sharing a customer silently overwrote each other's decision, and one clinic's outreach put the other's same-phone customer into cooldown.
 
-**Impact:** cross-tenant data leak; breaks the central claim in front of judges.
-**Fix:** `clinic_id` on every tenant table and in every predicate; `tests/test_tenant_isolation.py` unskipped and passing.
+Now enforced in three layers rather than by convention:
+
+1. **Schema** — `clinic_id NOT NULL` on all six tenant tables; `UNIQUE (clinic_id, client_key)`; `opt_outs` deliberately global.
+2. **Runtime** — `db/repo.py::install_tenant_guard` rejects any SELECT/UPDATE/DELETE touching a tenant table without a `clinic_id` predicate, before it reaches Postgres. `unguarded()` is the single, explicit, greppable escape hatch.
+3. **Tests** — 24 checks in `tests/test_tenant_isolation.py`, no database and no network required, so they cannot become slow enough to disable.
+
+`get_clinic()` raises rather than creating, so a typo cannot silently split one clinic across two tenants.
+
+**One real bug found by doing this against a live database.** The bypass was first stored on SQLAlchemy's `Connection.info`, which is kept on the *pooled connection record* and survives check-in. A single `unguarded()` call therefore left that connection permanently unguarded, and every later checkout of it ran unscoped — the guard silently stopped guarding, which is worse than never having had one. Unit tests could not see it; the first integration run against a real pool did. The bypass is now a `ContextVar` that resets with its token, and `test_bypass_does_not_survive_connection_reuse` pins the behaviour.
 
 ---
 

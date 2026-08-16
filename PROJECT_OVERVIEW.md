@@ -54,7 +54,9 @@ Scaffold plus a completed qualification spike (F-1 steps 1–4). Nothing committ
 | Outreach model | `gemini-3.5-flash` |
 | Cloud Run region | `us-central1` (independent of the Vertex location) |
 
-**Not built:** everything under `core/`, the Pub/Sub fabric, Cloud SQL, the dashboard. Agent Engine (F-1 step 5) is the outstanding decision for GAP-012.
+**F-2 done (2026-08-16):** Cloud SQL Postgres 16 (`relayops-fleet-db`) provisioned; migration `0001` applied — 9 tables, 58 CHECK constraints live. Tenant isolation enforced in three layers (schema, a runtime guard that rejects unscoped statements before they reach Postgres, and 33 tests). DB password lives in Secret Manager, never in the repo.
+
+**Not built:** everything under `core/`, the Pub/Sub fabric, the dashboard.
 
 ## 6. Goals
 
