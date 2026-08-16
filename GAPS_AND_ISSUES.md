@@ -178,7 +178,7 @@ Option (a) is preferred: it is the only one that makes the question moot rather 
 ## Medium
 
 ### GAP-008 — No Model Armor, no per-role service accounts, no Memory Bank
-**Category:** governance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-9](CLAUDE.md#f-9)
+**Category:** governance · **Status:** **CLOSED (9b46d8a)** · **Spec:** [F-9](CLAUDE.md#f-9)
 
 **Per-role service accounts** (F-12): three, least privilege, with `relayops-dashboard` holding exactly `cloudsql.client` + `secretmanager.secretAccessor` and **no `aiplatform.user`** — the approval surface approves, it cannot generate.
 
