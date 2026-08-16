@@ -57,7 +57,7 @@ Still open: Cloud SQL, Pub/Sub topics, Cloud Scheduler, and the real (non-spike)
 **Fix:** port `relayops-prod` `src/relayops/consent.py:28-121`. Opt-outs global, cooldown per clinic.
 
 ### GAP-011 — No tenant isolation enforcement
-**Category:** data integrity · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-2](CLAUDE.md#f-2)
+**Category:** data integrity · **Status:** **CLOSED (063c801)** · **Spec:** [F-2](CLAUDE.md#f-2)
 **Verified against Cloud SQL:** migration `0001` applied; 9 tables, 58 CHECK constraints live; 33 tests green including 9 integration tests.
 
 Multi-tenancy is the architectural claim of the submission. In `relayops-prod` this exact bug was real: `client_decisions.client_key` was globally unique on the phone number, so two clinics sharing a customer silently overwrote each other's decision, and one clinic's outreach put the other's same-phone customer into cooldown.
