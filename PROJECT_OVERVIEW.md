@@ -62,7 +62,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-6 done (2026-08-16):** publisher job → Pub/Sub → push worker, with DLQ, replay-safe upserts and 204/500 status discipline. Verified end to end on the synthetic demo tenant against Cloud SQL and live Gemini: 11 clients fanned out, one drafted (5,262 tokens), two gated at **zero tokens**. Pub/Sub topics created.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), the dashboard (F-8), deploy script (F-12), demo assets (F-13).
+**F-8 done (2026-08-16):** approval dashboard on FastAPI + Jinja2 — clinic picker, drafts queue, the decision behind every draft, and the who-was-not-contacted view. Approve marks without sending; Mark sent writes `contact_log` before flipping status. Fails closed without `DASHBOARD_PASSWORD`. 178 tests green.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), deploy script (F-12), demo assets (F-13).
 
 ## 6. Goals
 

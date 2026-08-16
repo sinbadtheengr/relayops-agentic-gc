@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ clinic.name }}</h1>
+<p class="sub">Approving marks a draft for sending. It does not send it.</p>
+
+<div class="tabs">
+  {% for s in statuses %}
+    <a class="tab {% if s == status_filter %}on{% endif %}"
+       href="/clinics/{{ clinic.id }}/drafts?status_filter={{ s }}">{{ s }} ({{ counts[s] }})</a>
+  {% endfor %}
+  <a class="tab" href="/clinics/{{ clinic.id }}/skipped">not contacted</a>
+</div>
+
+{% for d in drafts %}
+  <div class="card">
+    <div>
+      <strong>{{ d.client_key }}</strong> · {{ d.channel }}
+      {% if d.needs_review %}<span class="badge">NEEDS REVIEW</span>{% endif %}
+    </div>
+    {% if d.subject %}<div class="meta">Subject: {{ d.subject }}</div>{% endif %}
+    <pre>{{ d.body }}</pre>
+    <p style="margin:12px 0 0">
+      {% if d.status == 'draft' %}
+        <form method="post" action="/clinics/{{ clinic.id }}/drafts/{{ d.id }}/approve">
+          <button class="primary" type="submit">Approve (does not send)</button>
+        </form>
+        <form method="post" action="/clinics/{{ clinic.id }}/drafts/{{ d.id }}/reject">
+          <button type="submit">Reject</button>
+        </form>
+      {% elif d.status == 'approved' %}
+        <form method="post" action="/clinics/{{ clinic.id }}/drafts/{{ d.id }}/sent">
+          <button type="submit">I sent this — start the cooldown</button>
+        </form>
+      {% endif %}
+      <a class="tab" href="/clinics/{{ clinic.id }}/drafts/{{ d.id }}/decision">Why this draft?</a>
+    </p>
+  </div>
+{% else %}
+  <div class="card">Nothing with status “{{ status_filter }}”.</div>
+{% endfor %}
+{% endblock %}

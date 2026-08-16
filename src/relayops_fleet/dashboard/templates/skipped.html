@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Not contacted — {{ clinic.name }}</h1>
+<p class="sub">Excluded by a rule before any model ran. Each of these cost zero tokens.</p>
+
+<div class="note">
+  The drafts queue shows who was contacted. This shows who was not, and why.
+  These decisions are made in code, never by the model.
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>reason</th><th>clients</th></tr>
+    {% for reason, count in reason_counts %}
+      <tr><td>{{ reason }}</td><td>{{ count }}</td></tr>
+    {% else %}
+      <tr><td colspan="2">Nothing excluded yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>client</th><th>reason</th><th>run</th><th>when</th></tr>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.client_key }}</td>
+        <td>{{ r.gate_reason }}</td>
+        <td class="meta">{{ r.run_id }}</td>
+        <td class="meta">{{ r.created_at }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+<p><a class="tab" href="/clinics/{{ clinic.id }}/drafts">Back to drafts</a></p>
+{% endblock %}

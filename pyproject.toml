@@ -48,7 +48,7 @@ dashboard = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-relayops_fleet = ["fixtures/*.csv", "fixtures/*.json", "fixtures/*.md"]
+relayops_fleet = ["fixtures/*.csv", "fixtures/*.json", "fixtures/*.md", "dashboard/templates/*.html"]
 
 [tool.ruff]
 line-length = 100

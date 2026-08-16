@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Clinics</h1>
+<p class="sub">Every draft below was written by an agent and sent by nobody.</p>
+{% for row in rows %}
+  <div class="card">
+    <strong>{{ row.clinic.name }}</strong>
+    <div class="meta">
+      awaiting review {{ row.counts.draft }} ·
+      approved {{ row.counts.approved }} ·
+      rejected {{ row.counts.rejected }} ·
+      sent {{ row.counts.sent }}
+    </div>
+    <p style="margin:10px 0 0">
+      <a class="tab" href="/clinics/{{ row.clinic.id }}/drafts">Review drafts</a>
+      <a class="tab" href="/clinics/{{ row.clinic.id }}/skipped">Who was not contacted</a>
+    </p>
+  </div>
+{% else %}
+  <div class="card">No active clinics.</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Why this draft?</h1>
+<p class="sub">{{ clinic.name }} · {{ draft.client_key }} · {{ draft.channel }}</p>
+
+{% if decision %}
+  <div class="card">
+    <table>
+      <tr><th>agent</th><td>{{ decision.agent_name }}</td></tr>
+      <tr><th>decided by</th><td>{{ decision.decided_by }}</td></tr>
+      <tr><th>model</th><td>{{ decision.model or '—' }}</td></tr>
+      <tr><th>tokens</th><td>{{ decision.tokens }}</td></tr>
+      <tr><th>latency</th><td>{{ decision.latency_ms }} ms</td></tr>
+      <tr><th>when</th><td>{{ decision.ts }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <strong>Reasoning</strong>
+    <pre>{{ decision.reasoning }}</pre>
+  </div>
+  <div class="card">
+    <strong>What the model was shown</strong>
+    <pre>{{ decision.input }}</pre>
+  </div>
+{% else %}
+  <div class="card">No decision row is linked to this draft.</div>
+{% endif %}
+<p><a class="tab" href="/clinics/{{ clinic.id }}/drafts">Back to drafts</a></p>
+{% endblock %}

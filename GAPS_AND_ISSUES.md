@@ -129,12 +129,17 @@ That token column is the demo in one line: **refusals cost nothing.**
 **Found by running the suite after seeding the demo tenant:** the publisher tests assumed the database held only their own clinics, so any other tenant broke them. `publish_campaign_run` now takes `clinic_ids` — which an operator also wants, to re-run a single clinic without touching the others.
 
 ### GAP-007 — No human approval surface
-**Category:** implementation · **Status:** OPEN · **Spec:** [F-8](CLAUDE.md#f-8)
+**Category:** implementation · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-8](CLAUDE.md#f-8)
 
-"Never sends" is only a real guarantee if the approval step is a working product surface.
+FastAPI + Jinja2, server-rendered, no JS build step. Verified against the live seeded tenant: clinic picker, drafts queue tabbed by status, the decision view behind every draft, and the skipped-clients view. 13 integration tests.
 
-**Impact:** the differentiating claim is unbacked; the demo has nothing to show at the end of the pipeline.
-**Fix:** M5. Include the skipped-clients view — it is the fastest way to demonstrate rule-not-model gating.
+**The two load-bearing behaviours, both tested as negatives:**
+1. **Approve does not send** — it sets `status='approved'` and writes **no** `contact_log` row. A cooldown started for a message nobody sent would suppress a real future campaign. The button text says "Approve (does not send)", asserted by a test, because an operator who believes otherwise will eventually be very surprised.
+2. **Mark sent writes `contact_log` BEFORE flipping the status**, in one transaction. A sent draft whose cooldown never started is how someone gets messaged twice. A test drives the full loop and confirms the next run gates that client on `cooldown`.
+
+**Fails closed:** with no `DASHBOARD_PASSWORD` every route returns 503 rather than serving client PII openly.
+
+**The tenant guard caught this feature's own code.** Mutating `draft.status` on a loaded ORM object makes SQLAlchemy emit `UPDATE outreach_drafts ... WHERE id = X` with no `clinic_id` — which would update another clinic's row given a wrong id. Status changes now go through `set_draft_status`, an explicit UPDATE naming both predicates. The guard has now paid for itself twice.
 
 ### GAP-014 — The qualifying models force a global endpoint, against a Canadian data-residency posture
 **Category:** compliance · **Status:** OPEN · **Discovered:** 2026-08-15 by F-1 · **Spec:** [F-1](CLAUDE.md#f-1)

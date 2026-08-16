@@ -170,7 +170,11 @@ Two `LlmAgent`s. Segment uses `settings.gemini_segment_model` with `output_schem
 ---
 
 ## F-8 — Approval dashboard
-**Closes:** GAP-007 · **Milestone:** M5 · **File:** `dashboard/app.py`
+**Closes:** GAP-007 · **Milestone:** M5 · **Status 2026-08-16: COMPLETE** · **Files:** `dashboard/app.py`, `dashboard/templates/`, `db/dashboard_repo.py`
+
+**Route shape changed:** draft actions are `/clinics/{clinic_id}/drafts/{draft_id}/...`, not `/drafts/{draft_id}/...`. The tenant guard requires a `clinic_id` predicate, and a bare draft id would have to be looked up unguarded — meaning a stale link could read another clinic's client. The guard shaped the API for the better.
+
+**`/clinics/{id}/invoice` lands with F-11**, since attribution is not built yet; a route that 501s is worse than one that does not exist.
 
 Routes are listed in the stub docstring. Behaviour that matters:
 
