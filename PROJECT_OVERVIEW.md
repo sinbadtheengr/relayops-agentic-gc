@@ -66,7 +66,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-12 done (2026-08-16):** `deploy/deploy.sh` provisions the whole system; every step performed by hand first. Live on `relayops-fleet`: worker + dashboard services, publisher job, Pub/Sub push subscription with DLQ, three least-privilege service accounts, nightly Cloud Scheduler. Verified end to end — 4 clients fanned out, 7 drafts produced, 17,891 tokens.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), demo assets (F-13).
+**F-13 mostly done (2026-08-16):** architecture diagram, 4-minute shot list, and paste-ready Devpost text. Recording the video and capturing console screenshots are the operator's to do.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9).
 
 ## 6. Goals
 

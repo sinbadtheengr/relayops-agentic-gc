@@ -186,12 +186,15 @@ The Fortified Enterprise Fleet framing and the Best Architectural Design prize b
 **Fix:** M6. The dashboard service account must not hold `aiplatform.user` — it approves, it does not generate.
 
 ### GAP-010 — No demo assets
-**Category:** judging · **Status:** OPEN · **Spec:** [F-13](CLAUDE.md#f-13)
+**Category:** judging · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-13](CLAUDE.md#f-13)
 
-No architecture diagram, no video, no Devpost text, no synthetic demo tenant.
+**Done:** synthetic demo tenant (`scripts/seed_demo_tenant.py`, seeded and used for every end-to-end run since F-6); architecture diagram ([docs/architecture.svg](docs/architecture.svg)) showing Gemini, backend, database and frontend as the submission requires; a 4-minute shot list with exact commands ([docs/demo-script.md](docs/demo-script.md)); and paste-ready Devpost text including the prior-work disclosure ([docs/devpost-submission.md](docs/devpost-submission.md)).
 
-**Impact:** an unshown system scores as an unbuilt one.
-**Fix:** M7. Build the synthetic tenant early (M2) so the demo runs against it all the way through.
+**Still open — and only the operator can do it:** record the video, and take the Cloud Run / Cloud SQL / Scheduler console screenshots that the rules require to be visible on camera.
+
+**Two things the script gets right that are easy to get wrong on the day:**
+- `SEGMENT_MAX_CLIENTS` must be raised to 25 before recording. At 4 the publisher takes the four *most lapsed* clients, and neither the opted-out nor the cooldown client is among them — **the refusals would not appear on camera at all**, which would cut the strongest 60 seconds.
+- The dashboard is IAM-only, so a browser cannot satisfy both the Bearer and Basic challenges. Use `gcloud run services proxy`.
 
 ### GAP-012 — Track choice and prize category undecided
 **Category:** submission · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Owner:** human, not a code model
