@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# HARD RULE inherited from relayops-internal: client and prospect data is
+# radioactive. Real PII must never reach a remote, and this repo is PUBLIC
+# (hackathon submission). Only synthetic fixtures are committed.
+# ---------------------------------------------------------------------------
+data/
+*.csv
+!src/relayops_fleet/fixtures/*.csv
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Cloud / local state
+*.log
+reports/
+.gcloudignore
+service-account*.json
+*credentials*.json

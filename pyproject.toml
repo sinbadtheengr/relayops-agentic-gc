@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relayops-fleet"
+version = "0.1.0"
+description = "RelayOps Revenue Recovery Fleet — multi-tenant background agent fleet for med-spa client reactivation (All Things Agentic Hackathon)"
+requires-python = ">=3.11"
+dependencies = [
+    # Agent framework — hackathon requires ADK / GenAI SDK / Antigravity / GenKit.
+    "google-adk>=1.0",
+    # >=2.0 for Gemini 3 support (thinking_level).
+    "google-genai>=2.0",
+    "google-cloud-pubsub>=2.21",
+    "google-cloud-logging>=3.10",
+    "google-cloud-storage>=2.17",
+    "sqlalchemy>=2.0.30",
+    "alembic>=1.13",
+    # Cloud SQL is reached from Cloud Run over its Unix socket
+    # (/cloudsql/<INSTANCE>), so no connector library is needed and psycopg
+    # works unchanged locally and deployed. cloud-sql-python-connector was
+    # dropped: it has no 'psycopg' extra (only pg8000/asyncpg/pytds/pymysql),
+    # and adopting pg8000 purely to satisfy it would fork the driver between
+    # local and cloud.
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.7",
+    "phonenumbers>=8.13",
+    "python-dotenv>=1.0",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+# Operator approval surface (Cloud Run service).
+dashboard = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+relayops_fleet = ["fixtures/*.csv", "fixtures/*.json", "fixtures/*.md"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
