@@ -49,12 +49,18 @@ Still open: Cloud SQL, Pub/Sub topics, Cloud Scheduler, and the real (non-spike)
 **Remaining risk unchanged:** Cloud SQL connectivity and IAM are still where a solo timeline dies. Do them next, not last.
 
 ### GAP-003 — Compliance gates do not exist in this repo
-**Category:** compliance · **Status:** OPEN · **Spec:** [F-4](CLAUDE.md#f-4)
+**Category:** compliance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-4](CLAUDE.md#f-4)
 
-`core/gates.py` raises `NotImplementedError`. Until it is ported, any run would pass every client — including opted-out ones — to a model and into a draft queue.
+`core/gates.py` is implemented as pure functions over pre-loaded values — no database, no clock, no network — so the compliance boundary is exhaustively testable. Gate order is fixed: `invalid_phone → opted_out → suppressed → cooldown → no_last_visit`, with the most serious applicable reason recorded (an opt-out never expires; a cooldown does, and logging the lesser reason would misrepresent the exclusion).
 
-**Impact:** unlawful contact under CASL if a run ever executed against real data; PIPEDA exposure. This is the one gap that must be closed *before* the first live run, not before the demo.
-**Fix:** port `relayops-prod` `src/relayops/consent.py:28-121`. Opt-outs global, cooldown per clinic.
+Loaders live in `db/consent_repo.py`, outside `core/`: opt-outs read **globally** (through the explicit `unguarded()` marker), cooldown reads **per clinic**. 34 tests — 27 needing no infrastructure, 7 against real Postgres, including the `relayops-prod` cross-clinic cooldown bug asserted through the real loader.
+
+**Two schema gaps this port exposed, both closed by migration `0002`:**
+
+1. `clients` had no `email` column, while `outreach_drafts` accepted an `email` channel — every email draft would have been undeliverable.
+2. `opt_outs.client_key` was `NOT NULL`, so an **email unsubscribe could not be recorded at all**. Under CASL the unsubscribe mechanism must actually work; silently discarding one is the failure mode carrying real liability. `client_key` is now nullable with a sibling `email`, a CHECK that at least one identifier is present, and partial unique indexes.
+
+The `0002` downgrade deliberately **refuses** to run while email-only opt-outs exist, rather than deleting suppression records to satisfy a schema rollback — dropping those would re-open contact to people who opted out.
 
 ### GAP-011 — No tenant isolation enforcement
 **Category:** data integrity · **Status:** **CLOSED (063c801)** · **Spec:** [F-2](CLAUDE.md#f-2)

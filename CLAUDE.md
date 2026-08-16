@@ -87,10 +87,14 @@ Header synonym matching across Jane, Boulevard, Vagaro, Mindbody, Fresha; explic
 ---
 
 ## F-4 — Compliance gates
-**Closes:** GAP-003 · **Milestone:** M2 · **File:** `src/relayops_fleet/core/gates.py`
-**Port from:** `relayops-prod` `src/relayops/consent.py:28-121`
+**Closes:** GAP-003 · **Milestone:** M2 · **Status 2026-08-16: COMPLETE** · **Files:** `core/gates.py` (pure), `db/consent_repo.py` (loaders)
+**Ported from:** `relayops-prod` `src/relayops/consent.py:28-121`
 
-Signature is already declared in the stub. Gate order is fixed: `invalid_phone` → `opted_out` → `suppressed` → `cooldown` → `no_last_visit`.
+Gate order is fixed: `invalid_phone` → `opted_out` → `suppressed` → `cooldown` → `no_last_visit`.
+
+**Two signature changes from the stub, both deliberate:**
+- **No `clinic_id` parameter.** Scoping happens where the sets are loaded; accepting a `clinic_id` here would imply this function does the scoping, which it does not.
+- **Email added** (`raw_email`, `opted_out_emails`). SMS opts out by STOP, email by unsubscribe link; matching only on phone would discard every email unsubscribe.
 
 **Rules**
 - A failing gate returns immediately with its reason. No model call, no draft, no exception.

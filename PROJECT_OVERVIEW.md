@@ -41,9 +41,7 @@ The last row is the one to build the video around. Nobody else will demo their a
 
 ## 5. Current state (2026-08-16)
 
-Scaffold plus a completed qualification spike (F-1 steps 1–4). Nothing committed yet.
-
-**Proven:** GCP project `relayops-fleet` provisioned and billed with 10 APIs enabled; Gemini ≥3.5 reachable and returning strictly-valid `SegmentDecision`; an ADK agent carrying the real production shape (strict `output_schema` + `before_agent_callback` injecting Python-computed facts) **deployed to Cloud Run and verified end to end** — HTTP 200, exact schema match, injected facts cited, VIP correctly not discounted. `pytest` collects (14 skipped, all unimplemented), `ruff` clean.
+M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fleet` provisioned and billed with 10 APIs enabled; Gemini ≥3.5 reachable and returning strictly-valid `SegmentDecision`; an ADK agent carrying the real production shape (strict `output_schema` + `before_agent_callback` injecting Python-computed facts) **verified end to end on both Cloud Run and Agent Engine** — HTTP 200, exact schema match, injected facts cited, VIP correctly not discounted.
 
 **Settled configuration** (corrected from the scaffold's assumptions — see [docs/F1-qualification-evidence.md](docs/F1-qualification-evidence.md)):
 
@@ -56,7 +54,9 @@ Scaffold plus a completed qualification spike (F-1 steps 1–4). Nothing committ
 
 **F-2 done (2026-08-16):** Cloud SQL Postgres 16 (`relayops-fleet-db`) provisioned; migration `0001` applied — 9 tables, 58 CHECK constraints live. Tenant isolation enforced in three layers (schema, a runtime guard that rejects unscoped statements before they reach Postgres, and 33 tests). DB password lives in Secret Manager, never in the repo.
 
-**Not built:** everything under `core/`, the Pub/Sub fabric, the dashboard.
+**F-4 done (2026-08-16):** compliance gates implemented as pure functions (`core/gates.py`) with loaders in `db/consent_repo.py`. Opt-outs global, cooldown per clinic, most-serious-reason-wins ordering. Migration `0002` added email identifiers after the port exposed that an email unsubscribe could not be recorded at all. 67 tests green (51 without infrastructure).
+
+**Not built:** `core/importer.py`, `core/features.py`, `core/casl.py`, `core/attribution.py`, the Pub/Sub fabric, the agents, the dashboard.
 
 ## 6. Goals
 
@@ -75,11 +75,11 @@ Scaffold plus a completed qualification spike (F-1 steps 1–4). Nothing committ
 | Layer | Choice | Notes |
 |---|---|---|
 | Language | Python 3.11+ | Matches `relayops-prod`, so ported code needs no rewriting |
-| Model | Gemini 3.5 Pro / Flash via Vertex AI | `google-genai>=2.0`; **availability verified day 1 (GAP-001)** |
+| Model | `gemini-3.7-flash` (segment) / `gemini-3.5-flash` (outreach) on Vertex, **`global` endpoint** | `google-genai>=2.0`; no Pro-tier ≥3.5 exists (GAP-001) |
 | Agent framework | Google ADK | Hackathon-required; replaces LangGraph from `relayops-prod` |
 | Compute | Cloud Run services + jobs | Worker, dashboard, publisher |
 | Async | Pub/Sub + DLQ | One message per client |
-| State | Cloud SQL Postgres + Alembic | Migrations 0001–0006 |
+| State | Cloud SQL Postgres 16 + Alembic | `0001` schema, `0002` email identifiers |
 | Safety | Model Armor | On CSV-derived free text only |
 | UI | FastAPI + Jinja2 | Server-rendered, no JS build step |
 

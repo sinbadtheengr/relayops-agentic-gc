@@ -29,6 +29,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -89,6 +90,9 @@ class Client(Base):
     )
     client_key: Mapped[str] = mapped_column(String(20), nullable=False)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Optional: many exports omit it, and the SMS channel does not need it.
+    # An email draft for a client with no address is never generated (F-7).
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     last_visit: Mapped[date] = mapped_column(Date, nullable=False)
     visit_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     lifetime_spend_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
@@ -260,12 +264,38 @@ class OptOut(Base):
     Scoping opt-outs per clinic would permit contacting someone who opted out
     elsewhere. Under-suppressing is the compliance risk; over-suppressing only
     costs a lead.
+
+    Either identifier may be present, because the two channels opt out
+    differently: SMS replies STOP (phone), email clicks unsubscribe (address,
+    often with no phone attached). Requiring a phone would silently discard
+    every email unsubscribe — a CASL violation, since the unsubscribe
+    mechanism must actually work.
     """
 
     __tablename__ = "opt_outs"
+    __table_args__ = (
+        CheckConstraint(
+            "client_key IS NOT NULL OR email IS NOT NULL", name="ck_opt_outs_identifier"
+        ),
+        # Partial unique indexes: uniqueness applies per identifier that is
+        # actually present, so many rows may carry a NULL phone.
+        Index(
+            "uq_opt_outs_client_key",
+            "client_key",
+            unique=True,
+            postgresql_where=text("client_key IS NOT NULL"),
+        ),
+        Index(
+            "uq_opt_outs_email",
+            "email",
+            unique=True,
+            postgresql_where=text("email IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    client_key: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    client_key: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
