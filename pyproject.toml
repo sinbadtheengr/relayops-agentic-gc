@@ -28,6 +28,10 @@ dependencies = [
     "phonenumbers>=8.13",
     "python-dotenv>=1.0",
     "rich>=13.7",
+    # The Pub/Sub push worker is a core Cloud Run service, not an optional
+    # surface, so FastAPI is a base dependency rather than a dashboard extra.
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
 ]
 
 [project.optional-dependencies]

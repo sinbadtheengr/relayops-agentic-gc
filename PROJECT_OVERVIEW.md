@@ -60,7 +60,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-7 + F-10 done (2026-08-16):** segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified live against Vertex — the decision cites the injected spend verbatim and the VIP draft clears every CASL guard with merge fields intact. `core/features.py` and `core/templates.py` keep the arithmetic and the approved copy in Python. Every model call and every rule-gated exclusion writes an `agent_decisions` row in the caller's transaction. **This closes the last qualification risk.** 143 tests green.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), the Pub/Sub fabric (F-6), Model Armor (F-9), the dashboard (F-8).
+**F-6 done (2026-08-16):** publisher job → Pub/Sub → push worker, with DLQ, replay-safe upserts and 204/500 status discipline. Verified end to end on the synthetic demo tenant against Cloud SQL and live Gemini: 11 clients fanned out, one drafted (5,262 tokens), two gated at **zero tokens**. Pub/Sub topics created.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), the dashboard (F-8), deploy script (F-12), demo assets (F-13).
 
 ## 6. Goals
 

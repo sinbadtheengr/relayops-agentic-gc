@@ -128,7 +128,11 @@ Guards run **after** generation, on every draft, unconditionally. They are not a
 ---
 
 ## F-6 — Async fabric
-**Closes:** GAP-006 · **Milestone:** M4 · **Files:** `fabric/publisher.py`, `fabric/worker.py`
+**Closes:** GAP-006 · **Milestone:** M4 · **Status 2026-08-16: COMPLETE** · **Files:** `fabric/publisher.py`, `fabric/worker.py`, `db/campaign_repo.py`
+
+**Addition:** the handler publishes poison messages to the DLQ itself and then acks, rather than nacking. Pub/Sub's native dead-lettering only fires after `max_delivery_attempts`, so a deterministically-broken message would otherwise be redelivered several times first, spending tokens on each pass.
+
+**Addition:** `publish_campaign_run(clinic_ids=...)` restricts a run to named tenants, so an operator can re-run one clinic. Settings is frozen by design, so the per-run cap is `max_clients=` in the signature rather than mutated global config.
 
 **Publisher** (Cloud Run Job, triggered nightly by Cloud Scheduler): per active clinic, select eligible clients, publish one `CampaignRunMessage` each, exit. Apply `SEGMENT_MAX_CLIENTS` **at publish time** and log how many clients were deliberately not enqueued.
 

@@ -107,12 +107,26 @@ Segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified l
 Two smaller design decisions recorded in F-7: `load_template_section` **raises** on an unknown bucket where `relayops-prod` fell back to the whole document (which hands the model every segment's copy, discounts included, and invites it to pick); and the VIP cutoff returns 0 below five known spends rather than inventing a tier from a four-client book.
 
 ### GAP-006 — No async fabric
-**Category:** implementation · **Status:** OPEN · **Spec:** [F-6](CLAUDE.md#f-6)
+**Category:** implementation · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-6](CLAUDE.md#f-6)
 
-The hackathon theme is agents that *"run in the background… asynchronously"*. Today the design is a synchronous CLI inherited from `relayops-prod`.
+Publisher job → Pub/Sub (`relayops.campaign.run`, topics created) → push worker, with an explicit DLQ and replay-safe writes. Verified end to end against Cloud SQL and live Gemini on the synthetic demo tenant:
 
-**Impact:** the theme is the 40% criterion. A batch loop demoed as a "fleet" reads as one.
-**Fix:** publisher job → Pub/Sub → push worker, with DLQ and idempotent writes.
+```
+published: 11
++14165550101 -> drafted        segment 1325 tok / 5.7s, outreach 3937 tok / 17.9s
++14165550109 -> gated:opted_out   rule, 0 tokens
++14165550110 -> gated:cooldown    rule, 0 tokens
+```
+
+That token column is the demo in one line: **refusals cost nothing.**
+
+**Design decisions worth keeping:**
+- **Gates run in the worker, not the publisher.** Filtering excluded clients at publish time would be cheaper and would leave no evidence; every exclusion now produces its own decision row.
+- **The handler dead-letters poison messages itself, then acks.** Pub/Sub's native dead-lettering only fires after `max_delivery_attempts`, so a deterministically-broken message would be redelivered several times first — each retry spending tokens.
+- **204 on permanent failure, 500 only on transient.** Returning 500 for a message that will fail identically builds an infinite retry loop that bills on every pass.
+- **`upsert_draft` carries `WHERE status = 'draft'`.** A nightly re-run must never revise copy a human approved, revive a rejection, or reopen something sent.
+
+**Found by running the suite after seeding the demo tenant:** the publisher tests assumed the database held only their own clinics, so any other tenant broke them. `publish_campaign_run` now takes `clinic_ids` — which an operator also wants, to re-run a single clinic without touching the others.
 
 ### GAP-007 — No human approval surface
 **Category:** implementation · **Status:** OPEN · **Spec:** [F-8](CLAUDE.md#f-8)
