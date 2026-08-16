@@ -83,7 +83,7 @@ Now enforced in three layers rather than by convention:
 ## High
 
 ### GAP-004 — Deterministic core not ported
-**Category:** implementation · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-3](CLAUDE.md#f-3), [F-5](CLAUDE.md#f-5), [F-7](CLAUDE.md#f-7), [F-11](CLAUDE.md#f-11)
+**Category:** implementation · **Status:** **CLOSED (6a9ee7b)** · **Spec:** [F-3](CLAUDE.md#f-3), [F-5](CLAUDE.md#f-5), [F-7](CLAUDE.md#f-7), [F-11](CLAUDE.md#f-11)
 
 **Done:** `core/casl.py` (F-5) — CASL repair plus the VIP-discount and overclaim guards. `core/features.py` + `core/templates.py` (F-7) — lapse buckets, per-clinic VIP cutoff, approved-template selection.
 **Also done:** `core/attribution.py` + `db/billing_repo.py` (F-11) — computed billing with 17 tests, plus the `/clinics/{id}/invoice` route F-8 deferred here.
