@@ -96,12 +96,15 @@ Now enforced in three layers rather than by convention:
 Also found while porting: `\b#\s?1\b` **could never match** — `#` is a non-word character, so `\b` never holds before it and that alternative was dead in the inherited expression.
 
 ### GAP-005 — LangGraph → ADK port not done
-**Category:** qualification · **Status:** OPEN · **Spec:** [F-7](CLAUDE.md#f-7)
+**Category:** qualification · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-7](CLAUDE.md#f-7)
 
-`relayops-prod` orchestrates segmentation with LangGraph, which is **not** on the hackathon's accepted framework list. The agents here are stubs.
+Segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified live against Vertex: the segment decision cites the injected `412000` spend verbatim, and the VIP draft passes every CASL guard with merge fields intact. `compute_features` was ported; LangGraph's `decide()` / `build_graph()` were discarded, which is precisely what ADK replaces.
 
-**Impact:** fails a hard requirement if left; also the substantive "new work" that justifies the newly-created-project rule.
-**Fix:** rebuild segment + outreach as ADK `LlmAgent`s. Keep `compute_features` (`segment_agent.py:86`); discard `decide()` / `build_graph()` (`:111`, `:172`) — that is precisely what ADK replaces.
+**This closes the last qualification risk.** Gemini ≥3.5 ✅, ADK ✅, Cloud Run + Cloud SQL ✅.
+
+**The trap worth remembering:** ADK interpolates `{var}` in *instructions* from session state, and the approved templates are full of `{{merge_field}}` placeholders — ADK reads the inner `{clinic_name}` as a state variable and raises `KeyError`. Facts and templates now travel in the user message, which ADK does not template. A test pins it.
+
+Two smaller design decisions recorded in F-7: `load_template_section` **raises** on an unknown bucket where `relayops-prod` fell back to the whole document (which hands the model every segment's copy, discounts included, and invites it to pick); and the VIP cutoff returns 0 below five known spends rather than inventing a tier from a four-client book.
 
 ### GAP-006 — No async fabric
 **Category:** implementation · **Status:** OPEN · **Spec:** [F-6](CLAUDE.md#f-6)

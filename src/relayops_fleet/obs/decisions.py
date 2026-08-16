@@ -10,36 +10,138 @@ Two sinks, deliberately unequal:
 1. **Postgres `agent_decisions`** — mandatory. If this write fails, the run
    fails. An unlogged decision is not allowed to reach a clinic.
 2. **Cloud Logging** (`relayops-agent-decisions`) — best-effort. Useful for
-   ops dashboards; never load-bearing.
+   ops dashboards; never load-bearing. A logging outage must not stop a
+   clinic's campaign.
 
-Port target: relayops-prod `src/relayops/obs.py` — see CLAUDE.md F-10.
+Ported from relayops-prod `src/relayops/obs.py` — see CLAUDE.md F-10.
 """
 from __future__ import annotations
 
+import json
+import warnings
+from functools import lru_cache
 from typing import Any
+
+from sqlalchemy.orm import Session
+
+from ..config import get_settings
+from ..db.models import AgentDecision
+
+CLOUD_LOG_NAME = "relayops-agent-decisions"
+
+
+@lru_cache
+def _cloud_logger():
+    """Lazy Cloud Logging client; None if ADC or the project is unavailable."""
+    try:
+        from google.cloud import logging as gcl
+
+        client = gcl.Client(project=get_settings().google_cloud_project or None)
+        return client.logger(CLOUD_LOG_NAME)
+    except Exception as e:  # noqa: BLE001 — any auth/env failure degrades to local-only
+        warnings.warn(
+            f"Cloud Logging unavailable ({type(e).__name__}: {e}); "
+            "decisions will only be written to Postgres.",
+            stacklevel=2,
+        )
+        return None
+
+
+def _jsonable(value: Any) -> Any:
+    """Coerce to something JSONB accepts, stringifying what it must."""
+    return json.loads(json.dumps(value, default=str))
 
 
 def log_agent_decision(
+    session: Session,
     *,
     agent_name: str,
     clinic_id: int,
     client_key: str | None,
     inputs: dict[str, Any],
-    output: dict[str, Any] | None,
-    reasoning: str,
-    model: str,
-    tokens: int,
-    latency_ms: int,
+    output: dict[str, Any] | None = None,
+    reasoning: str = "",
+    model: str = "",
+    tokens: int = 0,
+    latency_ms: int = 0,
     decided_by: str = "model",
     gate_reason: str | None = None,
-) -> int:
-    """Write the decision row and return its id. Raises if Postgres refuses.
+) -> AgentDecision:
+    """Write the decision row and return it. Raises if Postgres refuses.
 
-    `decided_by='rule'` rows carry `model=''`, `tokens=0` and a `gate_reason`
-    — they are the record of a client the system deliberately did NOT
-    contact, which is the half of the audit trail a compliance review
-    actually asks for.
+    Takes a `session` rather than opening its own connection (a change from
+    the relayops-prod signature): the row must land in the SAME transaction as
+    the draft it explains, or a rollback could leave a draft whose decision
+    row never existed.
 
-    TODO(F-10): implement.
+    `decided_by='rule'` rows carry `model=''`, `tokens=0` and a `gate_reason` —
+    they are the record of a client the system deliberately did NOT contact,
+    which is the half of the audit trail a compliance review actually asks for.
     """
-    raise NotImplementedError("F-10")
+    row = AgentDecision(
+        agent_name=agent_name,
+        clinic_id=clinic_id,
+        client_key=client_key,
+        input=_jsonable(inputs),
+        output=_jsonable(output) if output is not None else None,
+        reasoning=reasoning,
+        model=model,
+        tokens=tokens,
+        latency_ms=latency_ms,
+        decided_by=decided_by,
+        gate_reason=gate_reason,
+    )
+    session.add(row)
+    # Flush, not commit: the caller owns the transaction boundary. Flushing
+    # here means a constraint violation surfaces now, next to the code that
+    # caused it, rather than at an unrelated commit later.
+    session.flush()
+
+    logger = _cloud_logger()
+    if logger is not None:
+        try:
+            logger.log_struct(
+                {
+                    "agent": agent_name,
+                    "clinic_id": clinic_id,
+                    "client_key": client_key,
+                    "decided_by": decided_by,
+                    "gate_reason": gate_reason,
+                    "model": model,
+                    "tokens": tokens,
+                    "latency_ms": latency_ms,
+                    "reasoning": reasoning,
+                },
+                severity="INFO",
+            )
+        except Exception as e:  # noqa: BLE001 — best-effort by design
+            warnings.warn(f"Cloud Logging write failed: {e}", stacklevel=2)
+
+    return row
+
+
+def log_gate_decision(
+    session: Session,
+    *,
+    clinic_id: int,
+    client_key: str | None,
+    gate_reason: str,
+    inputs: dict[str, Any],
+) -> AgentDecision:
+    """Record a client the gates excluded. Zero tokens, no model.
+
+    Exists as its own function because these rows are easy to forget: nothing
+    downstream depends on them, so a missing one is invisible until someone
+    asks why a client was never contacted and the system cannot say.
+    """
+    return log_agent_decision(
+        session,
+        agent_name="gates",
+        clinic_id=clinic_id,
+        client_key=client_key,
+        inputs=inputs,
+        output=None,
+        reasoning=f"gated: {gate_reason}",
+        decided_by="rule",
+        gate_reason=gate_reason,
+    )

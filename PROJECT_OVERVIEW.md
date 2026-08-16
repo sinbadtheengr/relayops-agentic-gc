@@ -58,7 +58,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-5 done (2026-08-16):** `core/casl.py` — CASL repair (STOP line, unsubscribe footer, idempotent) plus VIP-discount and overclaim guards, returning `needs_review` as a value rather than a text prefix. Negated offers and hedged claims are stripped before matching, because the inherited regex badged compliant phrasing the current models actually produce. 102 tests green.
 
-**Not built:** `core/importer.py`, `core/features.py`, `core/attribution.py`, the Pub/Sub fabric, the agents, the dashboard.
+**F-7 + F-10 done (2026-08-16):** segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified live against Vertex — the decision cites the injected spend verbatim and the VIP draft clears every CASL guard with merge fields intact. `core/features.py` and `core/templates.py` keep the arithmetic and the approved copy in Python. Every model call and every rule-gated exclusion writes an `agent_decisions` row in the caller's transaction. **This closes the last qualification risk.** 143 tests green.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), the Pub/Sub fabric (F-6), Model Armor (F-9), the dashboard (F-8).
 
 ## 6. Goals
 

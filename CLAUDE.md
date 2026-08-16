@@ -144,7 +144,11 @@ Guards run **after** generation, on every draft, unconditionally. They are not a
 ---
 
 ## F-7 — ADK agents
-**Closes:** GAP-005 · **Milestone:** M3 · **Files:** `agents/segment.py`, `agents/outreach.py`, `agents/callbacks.py`, `core/features.py`
+**Closes:** GAP-005 · **Milestone:** M3 · **Status 2026-08-16: COMPLETE** · **Files:** `agents/segment.py`, `agents/outreach.py`, `agents/callbacks.py`, `agents/runner.py`, `core/features.py`, `core/templates.py`
+
+**Load-bearing discovery: ADK interpolates `{var}` in instructions from session state.** The approved campaign templates are full of `{{merge_field}}` placeholders, and ADK reads the inner `{clinic_name}` as a state variable and raises `KeyError`. Therefore **instructions carry static rules only; the computed facts and the approved template section travel in the user message**, which ADK does not template. `test_instructions_contain_no_template_variables` stops anyone reintroducing a brace.
+
+Each agent module owns `build_*_message(state)` and `run_*(state)`, so the caller cannot hand the model facts it did not compute.
 
 Two `LlmAgent`s. Segment uses `settings.gemini_segment_model` with `output_schema=SegmentDecision`; outreach uses `settings.gemini_outreach_model` with `output_schema=OutreachDraftSet`.
 
