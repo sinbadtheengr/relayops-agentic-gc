@@ -64,7 +64,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-8 done (2026-08-16):** approval dashboard on FastAPI + Jinja2 — clinic picker, drafts queue, the decision behind every draft, and the who-was-not-contacted view. Approve marks without sending; Mark sent writes `contact_log` before flipping status. Fails closed without `DASHBOARD_PASSWORD`. 178 tests green.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), deploy script (F-12), demo assets (F-13).
+**F-12 done (2026-08-16):** `deploy/deploy.sh` provisions the whole system; every step performed by hand first. Live on `relayops-fleet`: worker + dashboard services, publisher job, Pub/Sub push subscription with DLQ, three least-privilege service accounts, nightly Cloud Scheduler. Verified end to end — 4 clients fanned out, 7 drafts produced, 17,891 tokens.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9), demo assets (F-13).
 
 ## 6. Goals
 

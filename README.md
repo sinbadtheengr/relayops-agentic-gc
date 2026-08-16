@@ -57,7 +57,31 @@ cp .env.example .env                               # fill in GOOGLE_CLOUD_PROJEC
 pytest
 ```
 
-Cloud deployment: `PROJECT_ID=... ./deploy/deploy.sh` (see [deploy/deploy.sh](deploy/deploy.sh)).
+Run the tests that need a database (Cloud SQL or any Postgres with the migrations applied):
+
+```bash
+RELAYOPS_TEST_DB=1 pytest
+```
+
+## Cloud deployment
+
+```bash
+PROJECT_ID=your-project ./deploy/deploy.sh
+```
+
+One script, from an empty project: enables APIs, creates Cloud SQL, generates the DB and dashboard passwords into Secret Manager, applies migrations, creates three least-privilege service accounts, builds the image, deploys the worker and dashboard services plus the publisher job, wires the Pub/Sub push subscription with dead-lettering, schedules the nightly run, and seeds the synthetic demo tenant.
+
+Three things in it are easy to get wrong and are commented in place:
+
+- **`gcloud auth application-default set-quota-project`** is mandatory. Without it every Vertex call returns `403 PERMISSION_DENIED` even for a project owner, because ADC still bills quota elsewhere. It presents as an IAM problem and is not one.
+- **`GOOGLE_CLOUD_LOCATION=global`, not the Cloud Run region.** Gemini ≥3.5 is served only on the global endpoint; a region there returns 404 for a model `models.list()` happily shows.
+- **The dashboard service account has no `aiplatform.user`.** The approval surface approves; it does not generate. If it could call a model, the human gate would have a bypass.
+
+Trigger a run immediately instead of waiting for the schedule:
+
+```bash
+gcloud run jobs execute relayops-publisher --project $PROJECT_ID --region us-central1
+```
 
 ## Data policy
 

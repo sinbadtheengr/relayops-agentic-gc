@@ -158,12 +158,20 @@ RelayOps sells to compliance-conscious GTA clinics, and the marketing site makes
 Option (a) is preferred: it is the only one that makes the question moot rather than disclosed.
 
 ### GAP-009 — No reproducible deployment path
-**Category:** judging · **Status:** OPEN · **Spec:** [F-12](CLAUDE.md#f-12)
+**Category:** judging · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-12](CLAUDE.md#f-12)
 
-30% of the score is *Demo & Production Readiness*, explicitly including reproducibility. `deploy/deploy.sh` is a comment outline.
+`deploy/deploy.sh` is complete and every step was performed by hand against `relayops-fleet` first. Live: three Cloud Run surfaces (worker service, dashboard service, publisher job), Pub/Sub push subscription with dead-lettering, three least-privilege service accounts, and a nightly Cloud Scheduler job at 09:00 America/Toronto.
 
-**Impact:** direct score loss on nearly a third of the rubric.
-**Fix:** M7 — but write each step as it is first performed by hand, not from memory on day 15.
+**Verified end to end on real infrastructure**, publisher job → Pub/Sub → push worker → Cloud SQL: 4 clients fanned out, **7 drafts** produced across SMS and email, merge fields intact, 17,891 tokens, no draft flagged.
+
+**Four deployment traps, all found by deploying rather than reading docs** (detail in [docs/F1-qualification-evidence.md](docs/F1-qualification-evidence.md)):
+
+1. **The image shipped without the approved campaign copy.** `.gcloudignore` excluded `*.md` as documentation, silently dropping `templates/campaign-templates.md`. The container built, started and passed health checks — then failed at draft time, *after* the segment model call was paid for. The Dockerfile now asserts the file exists and contains `## Segment D`; a build that cannot produce a draft never reaches the registry.
+2. **Cloud Run intercepts `/healthz`** and answers with its own HTML 404 before the request reaches the app. Health endpoints are `/health`.
+3. **Cloud Run answers 404, not 403,** for an unauthorized caller — indistinguishable from a missing route. `--audiences` needs a service account, so a user account cannot mint a correctly-scoped token at all.
+4. **FastAPI's `/docs` and `/openapi.json` were public** on the PII surface, served before the auth dependency. Disabled on the dashboard, with a test.
+
+**Not yet verified:** the from-an-empty-project claim. Every step is idempotent and was run individually against a real project, but a second clean project has not been provisioned end to end — that costs another Cloud SQL instance. Flagged rather than assumed.
 
 ---
 

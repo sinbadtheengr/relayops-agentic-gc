@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 
 import pytest
 
@@ -190,3 +191,24 @@ def test_live_vip_draft_carries_no_discount_and_keeps_merge_fields() -> None:
     combined = guarded.draft.sms + guarded.draft.email_body
     assert "{{" in combined, "merge fields were not preserved for the clinic to fill"
     assert "reply stop to opt out" in guarded.draft.sms.lower()
+
+
+def test_templates_are_findable_via_env_override(tmp_path, monkeypatch) -> None:
+    """The container installs the package non-editable, so the repo-relative
+    walk resolves under site-packages and finds nothing. RELAYOPS_TEMPLATES_DIR
+    is how the image points at the copy baked into it. A missing template only
+    surfaces at draft time, which is far too late to discover it."""
+    import importlib
+
+    from relayops_fleet.core import templates as tmod
+
+    src = Path(tmod.TEMPLATES_PATH).read_text(encoding="utf-8")
+    (tmp_path / "campaign-templates.md").write_text(src, encoding="utf-8")
+    monkeypatch.setenv("RELAYOPS_TEMPLATES_DIR", str(tmp_path))
+    importlib.reload(tmod)
+    try:
+        assert tmod.TEMPLATES_PATH.parent == tmp_path
+        assert "## Segment D" in tmod.load_template_section(bucket=None, is_vip=True)
+    finally:
+        monkeypatch.delenv("RELAYOPS_TEMPLATES_DIR", raising=False)
+        importlib.reload(tmod)

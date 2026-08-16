@@ -132,9 +132,19 @@ def test_no_credentials_are_rejected(app_client) -> None:
     assert app_client.get("/").status_code == 401
 
 
-def test_healthz_needs_no_auth(app_client) -> None:
-    """Cloud Run needs it, and it reveals nothing."""
-    assert app_client.get("/healthz").status_code == 200
+def test_health_needs_no_auth(app_client) -> None:
+    """Cloud Run needs it, and it reveals nothing.
+
+    Deliberately /health, not /healthz: Cloud Run's frontend intercepts
+    /healthz and returns its own 404 before the request reaches the app.
+    """
+    assert app_client.get("/health").status_code == 200
+
+
+def test_api_docs_are_not_served(app_client) -> None:
+    """This surface lists client PII; it must not publish its route map."""
+    assert app_client.get("/openapi.json").status_code == 404
+    assert app_client.get("/docs").status_code == 404
 
 
 # --- Views ----------------------------------------------------------------

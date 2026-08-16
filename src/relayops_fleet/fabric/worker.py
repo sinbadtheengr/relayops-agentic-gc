@@ -297,6 +297,8 @@ async def handle_push(request: Request) -> Response:
     return Response(status_code=204)
 
 
-@app.get("/healthz")
+# NOT /healthz: Cloud Run's frontend intercepts that path and returns its
+# own HTML 404, so the route never reaches the app. Verified 2026-08-16.
+@app.get("/health")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}

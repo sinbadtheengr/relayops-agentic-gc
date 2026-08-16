@@ -194,3 +194,50 @@ All five steps done. Open items move to their own features:
 - **GAP-014**: `global` endpoint vs Canadian data residency (business decision, not a build blocker).
 - **GAP-012**: track decision — evidence now supports Fleet; the Startup Excellence / corporate-email question remains open and is the operator's.
 - Cloud SQL and Pub/Sub provisioning move to **F-2** and **F-6**.
+
+
+---
+
+# Deployment findings (F-12, 2026-08-16)
+
+Three more traps, all found by deploying rather than by reading docs.
+
+## The package must be told where the approved copy lives
+
+The Dockerfile installs the package non-editable, so `core/templates.py`'s
+`Path(__file__).parents[3] / "templates"` resolves under `site-packages` and
+finds nothing. The approved campaign copy would have been unfindable in the
+deployed worker — and only at draft time, mid-run, after the model call had
+already been paid for.
+
+`RELAYOPS_TEMPLATES_DIR` now overrides the path and the image sets it.
+
+## Cloud Run intercepts `/healthz`
+
+A health route at `/healthz` never reaches the app: Google's frontend answers
+first with its own HTML 404. Proof, all with the same credentials:
+
+| path | status | body |
+|---|---|---|
+| `/healthz` | 404 | Google HTML error page |
+| `/health` | 404 | `{"detail":"Not Found"}` (FastAPI — request reached the app) |
+| `/nope` | 404 | `{"detail":"Not Found"}` |
+| `/openapi.json` | 200 | the app |
+
+The health endpoint is now `/health` on both services.
+
+## Cloud Run returns 404, not 403, for an unauthorized caller
+
+`gcloud auth print-identity-token` mints a token whose audience is the gcloud
+client, not the service URL. Cloud Run rejects it — and answers **404**, to
+avoid revealing whether a service exists. That is indistinguishable from a
+missing route, which is exactly how an hour gets lost. `--audiences` requires
+a service account, so a user account cannot mint a correctly-scoped token at
+all; use `gcloud run services proxy` for browser access instead.
+
+## FastAPI docs were public on a PII surface
+
+`/docs` and `/openapi.json` are served before the Basic-auth dependency runs,
+so the full route map of the approval dashboard was readable by anyone who
+could reach the service. Now disabled on the dashboard (`docs_url=None`,
+`redoc_url=None`, `openapi_url=None`), with a test.

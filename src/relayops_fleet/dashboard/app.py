@@ -39,7 +39,15 @@ from ..db.repo import build_engine, build_sessionmaker, unguarded
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
-app = FastAPI(title="RelayOps Fleet — approvals")
+# No /docs, /redoc or /openapi.json: Cloud Run serves them before the Basic
+# auth dependency runs, so on a surface that lists client PII they would
+# publish the full route map to anyone who can reach the service.
+app = FastAPI(
+    title="RelayOps Fleet — approvals",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 security = HTTPBasic(auto_error=False)
 
 _Session = None
@@ -89,7 +97,9 @@ def _clinic_or_404(session: Session, clinic_id: int) -> Clinic:
     return clinic
 
 
-@app.get("/healthz")
+# NOT /healthz: Cloud Run's frontend intercepts that path (verified
+# 2026-08-16) and the route never reaches the app.
+@app.get("/health")
 def healthz() -> dict[str, str]:
     """Unauthenticated on purpose: Cloud Run needs it and it reveals nothing."""
     return {"status": "ok"}

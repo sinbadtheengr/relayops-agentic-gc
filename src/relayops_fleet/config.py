@@ -13,6 +13,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 
@@ -21,6 +22,33 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def _flag(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _database_url() -> str:
+    """Resolve the DSN, preferring an explicit DATABASE_URL.
+
+    On Cloud Run the password arrives on its own as a mounted secret and the
+    connection goes over the Cloud SQL Unix socket, so the DSN is assembled
+    here from parts rather than being stored whole. Storing the whole URL as
+    the secret would put the username, database name and socket path into
+    Secret Manager alongside the password, and rotating the password would
+    mean rewriting all four.
+    """
+    explicit = os.environ.get("DATABASE_URL", "").strip()
+    if explicit:
+        return explicit
+
+    instance = os.environ.get("CLOUD_SQL_INSTANCE", "").strip()
+    password = os.environ.get("DB_PASSWORD", "")
+    if instance and password:
+        user = os.environ.get("DB_USER", "relayops")
+        name = os.environ.get("DB_NAME", "relayops")
+        return (
+            f"postgresql+psycopg://{quote_plus(user)}:{quote_plus(password)}"
+            f"@/{name}?host=/cloudsql/{instance}"
+        )
+
+    return "postgresql+psycopg://relayops:relayops@localhost:5434/relayops"
 
 
 @dataclass(frozen=True)
@@ -66,9 +94,7 @@ def get_settings() -> Settings:
         use_vertexai=_flag("GOOGLE_GENAI_USE_VERTEXAI", "true"),
         gemini_segment_model=os.environ.get("GEMINI_SEGMENT_MODEL", "gemini-3.7-flash"),
         gemini_outreach_model=os.environ.get("GEMINI_OUTREACH_MODEL", "gemini-3.5-flash"),
-        database_url=os.environ.get(
-            "DATABASE_URL", "postgresql+psycopg://relayops:relayops@localhost:5434/relayops"
-        ),
+        database_url=_database_url(),
         cloud_sql_instance=os.environ.get("CLOUD_SQL_INSTANCE", "").strip(),
         pubsub_topic_campaign_run=os.environ.get(
             "PUBSUB_TOPIC_CAMPAIGN_RUN", "relayops.campaign.run"

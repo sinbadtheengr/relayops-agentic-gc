@@ -10,10 +10,27 @@ CLAUDE.md F-7.
 """
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
-TEMPLATES_PATH = Path(__file__).resolve().parents[3] / "templates" / "campaign-templates.md"
+
+def _templates_path() -> Path:
+    """Locate the approved copy in both a source checkout and a container.
+
+    `parents[3]` finds `<repo>/templates` only for an editable install. The
+    Dockerfile installs the package normally, which puts this module under
+    site-packages and makes that walk resolve to a directory that does not
+    exist — the approved copy would be unfindable in the deployed worker, and
+    only at draft time. RELAYOPS_TEMPLATES_DIR is set in the image.
+    """
+    override = os.environ.get("RELAYOPS_TEMPLATES_DIR", "").strip()
+    if override:
+        return Path(override) / "campaign-templates.md"
+    return Path(__file__).resolve().parents[3] / "templates" / "campaign-templates.md"
+
+
+TEMPLATES_PATH = _templates_path()
 
 # lapse bucket -> campaign-template section header
 SEGMENT_SECTION = {
