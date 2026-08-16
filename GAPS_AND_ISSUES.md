@@ -178,12 +178,32 @@ Option (a) is preferred: it is the only one that makes the question moot rather 
 ## Medium
 
 ### GAP-008 — No Model Armor, no per-role service accounts, no Memory Bank
-**Category:** governance · **Status:** OPEN · **Spec:** [F-9](CLAUDE.md#f-9)
+**Category:** governance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-9](CLAUDE.md#f-9)
 
-The Fortified Enterprise Fleet framing and the Best Architectural Design prize both rest on this layer. The injection surface is real: clinic exports carry free-text `notes` that reach a prompt.
+**Per-role service accounts** (F-12): three, least privilege, with `relayops-dashboard` holding exactly `cloudsql.client` + `secretmanager.secretAccessor` and **no `aiplatform.user`** — the approval surface approves, it cannot generate.
 
-**Impact:** loses the strongest differentiator; keeps a genuine injection path open.
-**Fix:** M6. The dashboard service account must not hold `aiplatform.user` — it approves, it does not generate.
+**Screening of clinic-supplied free text**, in two layers:
+
+1. `core/untrusted.py` — deterministic, offline, **always runs**.
+2. Model Armor template `relayops-notes` (PI-and-jailbreak at `LOW_AND_ABOVE`, malicious-URI) — catches phrasings a regex will not, and **fails closed**: if it is configured but unreachable, the note is dropped rather than passed unscreened. A boundary that degrades to "allow" when a dependency is down is not a boundary.
+
+Verified live end to end against real Gemini and real Model Armor:
+
+| client | note | verdict | used | draft contains "90%" |
+|---|---|---|---|---|
+| Kai | the seeded injection | `blocked:override_attempt` | no | no |
+| Marcus | "Prefers late-afternoon slots…" | `clean` | **yes** | no |
+| Others | none | `absent` | no | no |
+
+`absent` and `blocked:` are deliberately distinct: *"the model never saw it"* and *"there was nothing to see"* must not look identical in an audit.
+
+**Screened notes are dropped, never rewritten.** Sanitizing an attacker's text and then trusting the rewrite is a worse position than proceeding without the field.
+
+**Two findings:**
+- `gcloud model-armor templates list|create` returns `PERMISSION_DENIED` on a project where the REST API works fine — it targets a different host. Templates are created via REST in `deploy.sh`.
+- **The layer was inert when first wired.** `worker.py` never put `notes` into the agent state, so every note reported `absent` and nothing was ever screened. Caught only by running it end to end against the seeded payload; no unit test would have noticed, because each half was individually correct.
+
+**Memory Bank** remains unbuilt — it is contingent on the Fleet track decision (GAP-012), and the Agent Engine spike already proved the surface exists.
 
 ### GAP-010 — No demo assets
 **Category:** judging · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-13](CLAUDE.md#f-13)

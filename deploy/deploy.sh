@@ -110,6 +110,14 @@ grant relayops-dashboard roles/secretmanager.secretAccessor
 # the human gate has a bypass.
 
 # ---------------------------------------------------------------------------
+say "5b. Model Armor template for clinic-supplied free text"
+# NOTE: create via REST. `gcloud model-armor templates ...` targets a
+# different host and returns PERMISSION_DENIED on a project where the REST
+# API works fine — verified 2026-08-16.
+MA_HOST="https://modelarmor.${REGION}.rep.googleapis.com/v1"
+MA_PARENT="projects/${PROJECT_ID}/locations/${REGION}"
+curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)"   -H "Content-Type: application/json"   "${MA_HOST}/${MA_PARENT}/templates?template_id=relayops-notes"   -d '{"filterConfig":{"piAndJailbreakFilterSettings":{"filterEnforcement":"ENABLED","confidenceLevel":"LOW_AND_ABOVE"},"maliciousUriFilterSettings":{"filterEnforcement":"ENABLED"}}}'   >/dev/null || true
+
 say "6. Pub/Sub topics, DLQ and push subscription"
 gcloud pubsub topics create "$TOPIC" --project "$PROJECT_ID" 2>/dev/null || true
 gcloud pubsub topics create "$DLQ_TOPIC" --project "$PROJECT_ID" 2>/dev/null || true
@@ -133,7 +141,7 @@ gcloud run deploy relayops-worker --project "$PROJECT_ID" --region "$REGION" \
   --service-account "relayops-worker@${PROJECT_ID}.iam.gserviceaccount.com" \
   --add-cloudsql-instances "$INSTANCE_CONN" \
   --set-secrets "DB_PASSWORD=${SECRET_ID}:latest" \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${VERTEX_LOCATION},GOOGLE_GENAI_USE_VERTEXAI=true,CLOUD_SQL_INSTANCE=${INSTANCE_CONN},DB_NAME=${DB_NAME},DB_USER=${DB_USER},PUBSUB_DLQ_TOPIC=${DLQ_TOPIC},DRY_RUN=false" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${VERTEX_LOCATION},GOOGLE_GENAI_USE_VERTEXAI=true,CLOUD_SQL_INSTANCE=${INSTANCE_CONN},DB_NAME=${DB_NAME},DB_USER=${DB_USER},PUBSUB_DLQ_TOPIC=${DLQ_TOPIC},DRY_RUN=false,MODEL_ARMOR_TEMPLATE=${MA_PARENT}/templates/relayops-notes" \
   --args "uvicorn,relayops_fleet.fabric.worker:app,--host,0.0.0.0,--port,8080" \
   --no-allow-unauthenticated --quiet
 

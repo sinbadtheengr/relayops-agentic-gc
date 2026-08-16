@@ -190,7 +190,13 @@ Routes are listed in the stub docstring. Behaviour that matters:
 ---
 
 ## F-9 — Governance layer
-**Closes:** GAP-008 · **Milestone:** M6
+**Closes:** GAP-008 · **Milestone:** M6 · **Status 2026-08-16: COMPLETE** (Memory Bank excepted — contingent on GAP-012)
+
+**Screened notes are DROPPED, never sanitized.** Rewriting an attacker's text and then trusting the rewrite is worse than proceeding without the field. Notes are optional colour; losing one costs personalization, never correctness.
+
+**Model Armor fails closed.** Configured-but-unreachable drops the note. Unconfigured means the layer is absent and the deterministic screen stands alone — correct for a local run, not a silent production downgrade.
+
+**Create templates via REST.** `gcloud model-armor templates ...` targets a different host and returns `PERMISSION_DENIED` where the REST API works.
 
 1. **Model Armor** via `sanitize_untrusted_fields` on every CSV-derived free-text field (`notes`, treatment descriptions). A screened field is replaced with a neutral marker and the verdict recorded on the decision row — visible in the audit trail, never silently dropped.
 2. **Per-role service accounts** as listed in `deploy/deploy.sh` step 5. `sa-dashboard` must **not** hold `aiplatform.user`: the approval surface approves, it does not generate.

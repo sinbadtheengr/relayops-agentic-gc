@@ -68,7 +68,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-13 mostly done (2026-08-16):** architecture diagram, 4-minute shot list, and paste-ready Devpost text. Recording the video and capturing console screenshots are the operator's to do.
 
-**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Model Armor (F-9).
+**F-9 done (2026-08-16):** clinic-supplied free text screened in two layers — a deterministic offline screen that always runs, plus a Model Armor template that fails closed. Verified live: the seeded injection is blocked and recorded, a benign staff note is used. Per-role service accounts from F-12 complete the governance layer.
+
+**Not built:** `core/importer.py` (F-3), `core/attribution.py` (F-11), Memory Bank (contingent on the track decision).
 
 ## 6. Goals
 

@@ -28,7 +28,7 @@ from fastapi import FastAPI, Request, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from ..agents.callbacks import AS_OF, CLIENT_ROW, VIP_CUTOFF_CENTS
+from ..agents.callbacks import AS_OF, CLIENT_ROW, VIP_CUTOFF_CENTS, screen_staff_note
 from ..agents.outreach import run_outreach
 from ..agents.segment import run_segment
 from ..config import get_settings
@@ -175,6 +175,11 @@ async def run_one_client(
             "visit_count": client.visit_count,
             "lifetime_spend_cents": client.lifetime_spend_cents,
             "last_service": client.last_service,
+            # Untrusted. Never reaches a prompt un-screened — see
+            # agents.callbacks.screen_staff_note. Carried here rather than
+            # omitted because omitting it made the whole F-9 screening layer
+            # inert: every note reported "absent" and nothing was ever tested.
+            "notes": client.notes,
         },
         VIP_CUTOFF_CENTS: vip_cutoff,
         AS_OF: as_of.isoformat(),
@@ -212,7 +217,10 @@ async def run_one_client(
     if not seg_decision.target:
         return "not_targeted"
 
-    # 5. Outreach.
+    # 5. Outreach. The staff note is screened before it can reach the prompt;
+    #    the verdict is recorded either way, so "the model never saw it" and
+    #    "there was nothing to see" do not look identical in the audit trail.
+    note, note_verdict = screen_staff_note(state)
     out = await run_outreach(dict(state))
     is_vip = bool(state[VIP_CUTOFF_CENTS]) and (client.lifetime_spend_cents or 0) >= vip_cutoff
     guarded = apply_copy_guards(out.output, is_vip=is_vip)
@@ -222,7 +230,7 @@ async def run_one_client(
         agent_name="outreach",
         clinic_id=clinic_id,
         client_key=client_key,
-        inputs=state,
+        inputs={**state, "staff_note_verdict": note_verdict, "staff_note_used": bool(note)},
         output=guarded.draft.model_dump(),
         reasoning=guarded.draft.reasoning,
         model=out.model,

@@ -30,7 +30,17 @@ AS_OF = date(2026, 8, 16)
 CLIENTS: list[tuple[str, str, int, int, int, str | None, str | None]] = [
     ("Dana", "+14165550101", 231, 7, 412_000, "dana@example.com", None),
     ("Priya", "+14165550102", 198, 6, 305_000, "priya@example.com", None),
-    ("Marcus", "+14165550103", 142, 4, 118_000, None, None),
+    # A benign staff note: the screening layer must let this through, or the
+    # demo only ever shows the block and not the value being protected.
+    (
+        "Marcus",
+        "+14165550103",
+        142,
+        4,
+        118_000,
+        None,
+        "Prefers late-afternoon slots. Asked about the new laser last visit.",
+    ),
     ("Elena", "+14165550104", 121, 3, 96_000, "elena@example.com", None),
     ("Tomas", "+14165550105", 402, 2, 54_000, None, None),
     ("Ines", "+14165550106", 365, 5, 210_000, "ines@example.com", None),
