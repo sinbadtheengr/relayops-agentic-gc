@@ -56,7 +56,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-4 done (2026-08-16):** compliance gates implemented as pure functions (`core/gates.py`) with loaders in `db/consent_repo.py`. Opt-outs global, cooldown per clinic, most-serious-reason-wins ordering. Migration `0002` added email identifiers after the port exposed that an email unsubscribe could not be recorded at all. 67 tests green (51 without infrastructure).
 
-**Not built:** `core/importer.py`, `core/features.py`, `core/casl.py`, `core/attribution.py`, the Pub/Sub fabric, the agents, the dashboard.
+**F-5 done (2026-08-16):** `core/casl.py` — CASL repair (STOP line, unsubscribe footer, idempotent) plus VIP-discount and overclaim guards, returning `needs_review` as a value rather than a text prefix. Negated offers and hedged claims are stripped before matching, because the inherited regex badged compliant phrasing the current models actually produce. 102 tests green.
+
+**Not built:** `core/importer.py`, `core/features.py`, `core/attribution.py`, the Pub/Sub fabric, the agents, the dashboard.
 
 ## 6. Goals
 

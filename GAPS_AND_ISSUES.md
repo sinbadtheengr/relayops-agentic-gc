@@ -83,12 +83,17 @@ Now enforced in three layers rather than by convention:
 ## High
 
 ### GAP-004 — Deterministic core not ported
-**Category:** implementation · **Status:** OPEN · **Spec:** [F-3](CLAUDE.md#f-3), [F-5](CLAUDE.md#f-5), [F-7](CLAUDE.md#f-7), [F-11](CLAUDE.md#f-11)
+**Category:** implementation · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-3](CLAUDE.md#f-3), [F-5](CLAUDE.md#f-5), [F-7](CLAUDE.md#f-7), [F-11](CLAUDE.md#f-11)
 
-`importer.py`, `features.py`, `casl.py`, `attribution.py` are stubs. All four have tested equivalents in `relayops-prod`; this is porting, not design.
+**Done:** `core/casl.py` (F-5) — CASL repair plus the VIP-discount and overclaim guards, 35 tests, no infrastructure.
+**Still stubs:** `importer.py` (F-3), `features.py` (F-7), `attribution.py` (F-11). All have tested equivalents in `relayops-prod`; this is porting, not design.
 
-**Impact:** without it there is nothing for the agents to reason over and no invoice to defend.
+**Impact of what remains:** nothing for the agents to reason over, and no invoice to defend.
 **Fix:** M2, and port the tests with the code.
+
+**Calibration note carried forward.** The inherited guard regex was mis-tuned for the models actually in use: `\bdiscount\b` matches inside *"non-discount"* and `\bincentive\b` inside *"no incentive"* — both compliant phrases that `gemini-3.7-flash` and `gemini-3.6-flash` produced during F-1. Porting it unchanged would have badged the phrasing the current models favour. Negated offers and hedged claims are now stripped before matching. A guard that flags correct copy is worse than no guard: reviewers learn to click past the badge and then miss the real one.
+
+Also found while porting: `\b#\s?1\b` **could never match** — `#` is a non-word character, so `\b` never holds before it and that alternative was dead in the inherited expression.
 
 ### GAP-005 — LangGraph → ADK port not done
 **Category:** qualification · **Status:** OPEN · **Spec:** [F-7](CLAUDE.md#f-7)

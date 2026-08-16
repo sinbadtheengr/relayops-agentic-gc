@@ -106,12 +106,20 @@ Gate order is fixed: `invalid_phone` → `opted_out` → `suppressed` → `coold
 ---
 
 ## F-5 — CASL enforcement and copy guards
-**Closes:** GAP-004 · **Milestone:** M2 · **File:** `src/relayops_fleet/core/casl.py`
-**Port from:** `relayops-prod` `src/relayops/pipeline/outreach.py:88-119`
+**Closes:** part of GAP-004 · **Milestone:** M2 · **Status 2026-08-16: COMPLETE** · **File:** `src/relayops_fleet/core/casl.py`
+**Ported from:** `relayops-prod` `src/relayops/pipeline/outreach.py:88-119`
+
+**Addition to the spec: `apply_copy_guards()` returns a `GuardedDraft`** carrying `needs_review: bool` and `reasons`. `outreach_drafts.needs_review` is a real column and F-8 renders a badge from it; sniffing the `[NEEDS REVIEW` text prefix to rebuild a boolean already known is how the two drift apart.
+
+**Guards are two kinds, deliberately.** `enforce_casl` *repairs* (a missing STOP line is appended — the draft is otherwise fine and a human reads it anyway). `flag_*` *escalate* (discount language in a VIP draft is a judgement about the clinic's pricing, not something code should silently rewrite).
+
+CASL repair runs **first** in the composition, so the appended footer is not itself scanned for offer language.
 
 - `enforce_casl(draft)` — appends `STOP_LINE` to `sms` if absent; appends the sender-identification + unsubscribe footer to `email_body` if absent. **Appends, never rejects**, and is **idempotent** (a redelivered message must not stack two STOP lines).
 - `flag_vip_discount(draft, is_vip=True)` — prefixes `[NEEDS REVIEW]` when discount language appears in a VIP draft. **Strip negated forms first** (`non-discount`, `no discount`, `without discount`, `no incentive`) — a naive `"discount" in text` test flags the compliant phrase *"non-discount perk"*, which `gemini-3.6-flash` produced on the first F-1 spike run. A guard that flags correct copy trains reviewers to ignore the badge, which is worse than having no badge.
-- `flag_overclaims(draft)` — prefixes `[NEEDS REVIEW]` on any term in `OVERCLAIM_TERMS`.
+- `flag_overclaims(draft)` — prefixes `[NEEDS REVIEW]` on promised outcomes, checking the **subject line too** (a subject is a commercial message like any other). **Strip hedges first**: *"we cannot guarantee availability, so book early"* is careful, honest copy and the opposite of an overclaim, but contains the bare word.
+
+**The false-positive half of the test suite is the half that matters.** Four have now been found in this class of guard — `non-discount` and `412,000` (F-1), `feel free to reply` and `credit card` (an earlier `relayops-prod` audit) — plus `#\s?1` which never fired at all because `\b` cannot match before `#`. Every guard is tested against copy that should trip it *and* copy that must not.
 
 Guards run **after** generation, on every draft, unconditionally. They are not a fallback for a bad prompt; they are the guarantee that the prompt's correctness does not matter.
 
