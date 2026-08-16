@@ -96,7 +96,7 @@ Now enforced in three layers rather than by convention:
 Also found while porting: `\b#\s?1\b` **could never match** — `#` is a non-word character, so `\b` never holds before it and that alternative was dead in the inherited expression.
 
 ### GAP-005 — LangGraph → ADK port not done
-**Category:** qualification · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-7](CLAUDE.md#f-7)
+**Category:** qualification · **Status:** **CLOSED (ad95be5)** · **Spec:** [F-7](CLAUDE.md#f-7)
 
 Segment and outreach are ADK `LlmAgent`s with strict `output_schema`, verified live against Vertex: the segment decision cites the injected `412000` spend verbatim, and the VIP draft passes every CASL guard with merge fields intact. `compute_features` was ported; LangGraph's `decide()` / `build_graph()` were discarded, which is precisely what ADK replaces.
 
