@@ -129,7 +129,7 @@ That token column is the demo in one line: **refusals cost nothing.**
 **Found by running the suite after seeding the demo tenant:** the publisher tests assumed the database held only their own clinics, so any other tenant broke them. `publish_campaign_run` now takes `clinic_ids` — which an operator also wants, to re-run a single clinic without touching the others.
 
 ### GAP-007 — No human approval surface
-**Category:** implementation · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Spec:** [F-8](CLAUDE.md#f-8)
+**Category:** implementation · **Status:** **CLOSED (0f6d409)** · **Spec:** [F-8](CLAUDE.md#f-8)
 
 FastAPI + Jinja2, server-rendered, no JS build step. Verified against the live seeded tenant: clinic picker, drafts queue tabbed by status, the decision view behind every draft, and the skipped-clients view. 13 integration tests.
 
