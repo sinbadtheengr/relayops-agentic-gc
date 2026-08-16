@@ -1,16 +1,16 @@
 # GAPS_AND_ISSUES — RelayOps Revenue Recovery Fleet
 
-**Verified against:** the working tree at scaffold time (2026-08-15), no commits yet.
+**Verified against:** `9320dc1` (2026-08-16).
 
-> **How this file differs from the usual one.** The standard version of this
-> document catalogs verified defects in existing code at a named commit. This
-> repo has no code yet, so every entry below is a gap between *what exists*
-> and *what a qualifying, deployable submission requires*. They are unbuilt
-> work, not observed bugs, and each says so.
+> **Normal contract now in force.** This file began as a register of unbuilt
+> work, because at scaffold time there was no code to verify defects against.
+> Code now exists, so the standard rule applies from here: **no gap may be
+> listed that was not verified against real code at a named commit.** New
+> entries carry `file:line` links and the commit they were observed at.
 >
-> **Once code lands, this file reverts to the normal contract**: no gap may be
-> listed that was not verified against real code at a named commit, with
-> `file:line` links.
+> Entries still marked OPEN below describe work specified but not yet
+> implemented — they are labelled as such, and each names the stub file that
+> currently stands in for it.
 
 **Severity ladder** — defined by impact on the single job (*ship a qualifying, deployed fleet by Aug 31 that RelayOps can run on Sept 1*):
 
