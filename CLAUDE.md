@@ -68,7 +68,9 @@ Tables exactly as listed in `db/models.py`.
 ---
 
 ## F-3 — Clinic export importer
-**Closes:** GAP-004 · **Milestone:** M2 · **File:** `src/relayops_fleet/core/importer.py`
+**Closes:** the last of GAP-004 · **Milestone:** M2 · **Status 2026-08-16: COMPLETE**
+
+**Adapted for this schema:** spend parses to integer cents (not floats), and `client_key` is normalized to E.164 inside the importer so a caller can never write an unnormalized key and two spellings of one number cannot become two clients. · **File:** `src/relayops_fleet/core/importer.py`
 **Port from:** `relayops-prod` `src/relayops/pipeline/client_import.py` (plus its tests, `tests/test_client_import.py`)
 
 Header synonym matching across Jane, Boulevard, Vagaro, Mindbody, Fresha; explicit `ColumnMapping` overrides detection.

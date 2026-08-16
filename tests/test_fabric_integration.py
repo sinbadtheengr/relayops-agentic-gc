@@ -284,3 +284,72 @@ def test_two_clinics_drafts_do_not_collide(session) -> None:
         {"k": key, "a": a.id, "b": b.id},
     ).scalar()
     assert count == 2
+
+
+def test_importing_an_export_twice_updates_rather_than_duplicates(session, tmp_path) -> None:
+    """A clinic re-exports every time they want a new wave, so this path runs
+    repeatedly over overlapping data by design."""
+    from relayops_fleet.core.importer import load_client_csv
+
+    clinic = _seed(session, TENANT_A, count=0)
+    path = tmp_path / "export.csv"
+
+    path.write_text(
+        "Client Name,Phone,Last Visit,Total Spend\n"
+        "Dana Q,416-555-0142,2026-01-03,$4120\n",
+        encoding="utf-8",
+    )
+    records, _ = load_client_csv(path)
+    inserted, updated = campaign_repo.upsert_clients(
+        session, clinic_id=clinic.id, records=records
+    )
+    session.flush()
+    assert (inserted, updated) == (1, 0)
+
+    # Re-export with a newer visit and a corrected spend.
+    path.write_text(
+        "Client Name,Phone,Last Visit,Total Spend\n"
+        "Dana Q,(416) 555-0142,2026-02-14,$5000\n",
+        encoding="utf-8",
+    )
+    records, _ = load_client_csv(path)
+    inserted, updated = campaign_repo.upsert_clients(
+        session, clinic_id=clinic.id, records=records
+    )
+    session.flush()
+    assert (inserted, updated) == (0, 1)
+
+    rows = list(
+        session.execute(
+            text(
+                "SELECT client_key, last_visit, lifetime_spend_cents FROM clients "
+                "WHERE clinic_id = :c"
+            ),
+            {"c": clinic.id},
+        )
+    )
+    assert len(rows) == 1, "a re-export must not create a second row for one person"
+    assert rows[0].last_visit == date(2026, 2, 14)
+    assert rows[0].lifetime_spend_cents == 500000
+
+
+def test_imported_clients_flow_into_the_publisher(session, tmp_path) -> None:
+    """End to end: an export becomes eligible clients for a campaign run."""
+    from relayops_fleet.core.importer import load_client_csv
+
+    clinic = _seed(session, TENANT_A, count=0)
+    path = tmp_path / "export.csv"
+    path.write_text(
+        "Client Name,Phone,Last Visit\n"
+        "Dana Q,416-555-0142,2025-06-01\n"      # long lapsed -> eligible
+        "Recent R,416-555-0143,2026-08-10\n",   # seen days ago -> not eligible
+        encoding="utf-8",
+    )
+    records, report = load_client_csv(path)
+    assert report.imported == 2
+
+    campaign_repo.upsert_clients(session, clinic_id=clinic.id, records=records)
+    session.flush()
+
+    result = publish_campaign_run(session, as_of=AS_OF, dry_run=True, clinic_ids=[clinic.id])
+    assert result.published == 1

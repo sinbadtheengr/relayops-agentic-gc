@@ -166,3 +166,46 @@ def upsert_draft(
             where=OutreachDraft.status == MUTABLE_DRAFT_STATUS,
         )
     )
+
+
+def upsert_clients(
+    session: Session, *, clinic_id: int, records: list[dict]
+) -> tuple[int, int]:
+    """Load imported client rows into one clinic. Returns (inserted, updated).
+
+    Replay-safe on `(clinic_id, client_key)`: re-importing a refreshed export
+    updates the client in place rather than creating a second row for the same
+    person. A clinic re-exports every time they want a new wave, so this path
+    runs repeatedly over overlapping data by design.
+
+    Notes are updated too, and remain untrusted — everything downstream
+    screens them before they can reach a prompt (F-9).
+    """
+    if not records:
+        return 0, 0
+
+    existing = {
+        key
+        for (key,) in session.execute(
+            select(Client.client_key).where(Client.clinic_id == clinic_id)
+        ).all()
+    }
+    inserted = sum(1 for r in records if r["client_key"] not in existing)
+
+    for record in records:
+        stmt = pg_insert(Client).values(clinic_id=clinic_id, **record)
+        session.execute(
+            stmt.on_conflict_do_update(
+                constraint="uq_clients_clinic_client",
+                set_={
+                    "first_name": stmt.excluded.first_name,
+                    "email": stmt.excluded.email,
+                    "last_visit": stmt.excluded.last_visit,
+                    "visit_count": stmt.excluded.visit_count,
+                    "lifetime_spend_cents": stmt.excluded.lifetime_spend_cents,
+                    "last_service": stmt.excluded.last_service,
+                    "notes": stmt.excluded.notes,
+                },
+            )
+        )
+    return inserted, len(records) - inserted

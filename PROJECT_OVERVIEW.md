@@ -72,7 +72,9 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-11 done (2026-08-16):** billing computed from the append-only outcome log, never stored — every billable line names the contact that earned it and the gap in days, and every exclusion carries its reason. Per client once, capped at $1,500. The `/invoice` route shows inclusions and exclusions on the same page. 17 tests.
 
-**Not built:** `core/importer.py` (F-3), Memory Bank (contingent on the track decision).
+**F-3 done (2026-08-16):** clinic export ingestion — synonym header matching across five booking systems, slashed-date disambiguation decided from the column, and every unusable row skipped with a named reason rather than defaulted. Re-importing updates in place. 268 tests green.
+
+**All specified features are built.** Only Memory Bank remains, and it is contingent on the track decision (GAP-012).
 
 ## 6. Goals
 
