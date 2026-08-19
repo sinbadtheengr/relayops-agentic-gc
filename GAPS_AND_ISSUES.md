@@ -149,7 +149,7 @@ FastAPI + Jinja2, server-rendered, no JS build step. Verified against the live s
 **The tenant guard caught this feature's own code.** Mutating `draft.status` on a loaded ORM object makes SQLAlchemy emit `UPDATE outreach_drafts ... WHERE id = X` with no `clinic_id` — which would update another clinic's row given a wrong id. Status changes now go through `set_draft_status`, an explicit UPDATE naming both predicates. The guard has now paid for itself twice.
 
 ### GAP-014 — The qualifying models force a global endpoint, against a Canadian data-residency posture
-**Category:** compliance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Discovered:** 2026-08-15 by F-1 · **Spec:** [F-7](CLAUDE.md#f-7)
+**Category:** compliance · **Status:** **CLOSED (2d893d7)** · **Discovered:** 2026-08-15 by F-1 · **Spec:** [F-7](CLAUDE.md#f-7)
 
 Every Gemini ≥3.5 model is served only from Vertex's `global` endpoint, which routes to whichever region has capacity. Anything in a prompt may therefore be processed outside Canada, while RelayOps sells to compliance-conscious GTA clinics and the marketing site makes explicit PIPEDA/CASL claims.
 
