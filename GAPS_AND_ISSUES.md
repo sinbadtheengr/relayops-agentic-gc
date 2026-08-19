@@ -39,14 +39,14 @@ Settled and written into `.env.example` + `config.py`: `GOOGLE_CLOUD_LOCATION=gl
 **Standing rule this produced:** a model appearing in `models.list()` is not proof it is callable. Any model change is verified with a real call.
 
 ### GAP-002 — No Google Cloud project, no deployed anything
-**Category:** qualification · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-1](CLAUDE.md#f-1), [F-2](CLAUDE.md#f-2)
+**Category:** qualification · **Status:** **CLOSED (f4ac6dc)** · **Spec:** [F-1](CLAUDE.md#f-1), [F-2](CLAUDE.md#f-2), [F-12](CLAUDE.md#f-12)
 **Evidence:** [docs/F1-qualification-evidence.md](docs/F1-qualification-evidence.md)
 
 Done: project `relayops-fleet` created and billed; 10 APIs enabled; an ADK agent carrying the real F-7 shape (strict `output_schema` + `before_agent_callback`) **deployed to Cloud Run and verified end to end** — HTTP 200, exact schema match, injected facts cited, VIP not discounted. Service is `--no-allow-unauthenticated`.
 
-Still open: Cloud SQL, Pub/Sub topics, Cloud Scheduler, and the real (non-spike) services. Those belong to F-2 and F-6.
+Everything this gap listed as outstanding is now live: Cloud SQL Postgres 16, Pub/Sub with a dead-letter topic and push subscription, Cloud Scheduler, and the three real services (worker, dashboard, publisher job) on their own least-privilege service accounts. The F-1 spike service was deleted once the real worker replaced it.
 
-**Remaining risk unchanged:** Cloud SQL connectivity and IAM are still where a solo timeline dies. Do them next, not last.
+The predicted risk was accurate — Cloud SQL connectivity and IAM did consume the most time, and produced most of the deployment findings recorded in F-12.
 
 ### GAP-003 — Compliance gates do not exist in this repo
 **Category:** compliance · **Status:** **CLOSED (bb89641)** · **Spec:** [F-4](CLAUDE.md#f-4)
