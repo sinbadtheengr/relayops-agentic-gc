@@ -169,3 +169,49 @@ def test_every_model_decision_has_a_clinic(session) -> None:
             client_key=PHONE,
             inputs={},
         )
+
+
+def test_cloud_logging_carries_no_client_identifier(session, monkeypatch) -> None:
+    """Cloud Logging is a second sink with its own retention, access rules and
+    export paths — a home for consumer PII nobody would think to audit.
+
+    The log line must identify no one, while still joining back to the full
+    record in our own database via decision_id.
+    """
+    from relayops_fleet.obs import decisions as dec
+
+    captured: list[dict] = []
+
+    class FakeLogger:
+        def log_struct(self, payload, severity=None):
+            captured.append(payload)
+
+    dec._cloud_logger.cache_clear()
+    monkeypatch.setattr(dec, "_cloud_logger", lambda: FakeLogger())
+
+    clinic_id = _clinic(session)
+    row = dec.log_agent_decision(
+        session,
+        agent_name="segment",
+        clinic_id=clinic_id,
+        client_key=PHONE,
+        inputs={"days_lapsed": 231},
+        output={"target": True},
+        reasoning="cited the client's numbers",
+        model="gemini-3.7-flash",
+        tokens=1000,
+    )
+    # No cache_clear here: monkeypatch replaced the lru_cache-wrapped function
+    # with a plain lambda, and restores the original on teardown.
+
+    assert len(captured) == 1
+    payload = captured[0]
+    serialized = str(payload)
+
+    assert "client_key" not in payload
+    assert PHONE not in serialized, "an E.164 phone reached Cloud Logging"
+    assert "4165550177" not in serialized, "the bare national number reached Cloud Logging"
+
+    # Correlation is preserved: this joins to the full row in Cloud SQL.
+    assert payload["decision_id"] == row.id
+    assert payload["clinic_id"] == clinic_id

@@ -164,7 +164,8 @@ The honest answer to "where do my clients' names go?" is now: they do not leave.
 **Residual exposure, stated rather than glossed:**
 - **Staff notes** may themselves contain personal detail. They are screened for injection (F-9) but not de-identified, because a note stripped of specifics is no longer worth including.
 - **`agent_decisions.input` still stores the full state, including the name.** That is Cloud SQL in `us-central1` — our own database, not the model endpoint — so it is outside this gap, but it means the decision log is not a record of the literal prompt.
-- **Cloud Logging entries carry `client_key`, which is a phone number.** Best-effort telemetry, not a model call, so again outside this gap — but it is a direct identifier in a second sink and worth a follow-up (log a masked key).
+- **Cloud Logging** *(fixed 2026-08-16)* — entries carried `client_key`, an E.164 phone number, putting a direct identifier in a second sink with its own retention, access rules and export paths. It now logs `decision_id` instead, which joins back to the full row in Cloud SQL, so correlation is unchanged and the log identifies no one. A hash was rejected: a bare SHA of a 10-digit number is brute-forceable in seconds, and a keyed hash would add secret management for no extra benefit. `test_cloud_logging_carries_no_client_identifier` pins it.
+- **The Pub/Sub dead-letter topic still carries the whole message, including `client_key`.** Deliberate and left as-is: a dead letter stripped of its client is not replayable, which defeats the point of having one. It is our own topic in our own project, with a bounded retention, rather than a broad ops sink.
 
 ### GAP-009 — No reproducible deployment path
 **Category:** judging · **Status:** **CLOSED (f4ac6dc)** · **Spec:** [F-12](CLAUDE.md#f-12)

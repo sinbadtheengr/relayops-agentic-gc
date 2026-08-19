@@ -218,6 +218,8 @@ Postgres write is **mandatory** — if it fails, the run fails, because an unlog
 
 Rule-gated clients also get a row (`decided_by='rule'`, `model=''`, `tokens=0`, `gate_reason` set). The record of who was **not** contacted is the half a compliance review actually asks for.
 
+**Cloud Logging carries no client identifier.** It logs `decision_id`, not `client_key`: the id joins back to the full row in Cloud SQL, so an operator keeps perfect correlation while a second sink — with its own retention, access and export paths — holds no consumer PII. Postgres remains the only place the phone number lives.
+
 **Acceptance:** every draft in the dashboard resolves to exactly one decision row; a forced Postgres failure aborts the run and produces no draft.
 
 ---

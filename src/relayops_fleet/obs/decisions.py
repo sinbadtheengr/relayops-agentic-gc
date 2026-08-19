@@ -100,11 +100,22 @@ def log_agent_decision(
     logger = _cloud_logger()
     if logger is not None:
         try:
+            # NO CLIENT IDENTIFIER. `client_key` is an E.164 phone number, and
+            # Cloud Logging is a broad ops sink with its own retention, access
+            # rules and export paths — a second home for consumer PII that
+            # nobody would think to audit.
+            #
+            # `decision_id` replaces it and loses nothing: it joins straight
+            # back to the full row in our own Cloud SQL, so an operator
+            # debugging a run has perfect correlation while the log itself
+            # identifies no one. Chosen over hashing the phone because a bare
+            # SHA of a 10-digit number is brute-forceable in seconds, and a
+            # keyed hash would add secret management for no extra benefit.
             logger.log_struct(
                 {
                     "agent": agent_name,
                     "clinic_id": clinic_id,
-                    "client_key": client_key,
+                    "decision_id": row.id,
                     "decided_by": decided_by,
                     "gate_reason": gate_reason,
                     "model": model,
