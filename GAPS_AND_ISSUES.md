@@ -149,20 +149,22 @@ FastAPI + Jinja2, server-rendered, no JS build step. Verified against the live s
 **The tenant guard caught this feature's own code.** Mutating `draft.status` on a loaded ORM object makes SQLAlchemy emit `UPDATE outreach_drafts ... WHERE id = X` with no `clinic_id` — which would update another clinic's row given a wrong id. Status changes now go through `set_draft_status`, an explicit UPDATE naming both predicates. The guard has now paid for itself twice.
 
 ### GAP-014 — The qualifying models force a global endpoint, against a Canadian data-residency posture
-**Category:** compliance · **Status:** OPEN · **Discovered:** 2026-08-15 by F-1 · **Spec:** [F-1](CLAUDE.md#f-1)
+**Category:** compliance · **Status:** **RESOLVED 2026-08-16** (pending commit) · **Discovered:** 2026-08-15 by F-1 · **Spec:** [F-7](CLAUDE.md#f-7)
 
-Every Gemini ≥3.5 model is served only on the `global` endpoint (GAP-001, finding 2). Vertex's global endpoint routes requests to whichever region has capacity, so **client first names, lapse history and spend go wherever Google routes them** — not to a Canadian or even a US region by guarantee.
+Every Gemini ≥3.5 model is served only from Vertex's `global` endpoint, which routes to whichever region has capacity. Anything in a prompt may therefore be processed outside Canada, while RelayOps sells to compliance-conscious GTA clinics and the marketing site makes explicit PIPEDA/CASL claims.
 
-RelayOps sells to compliance-conscious GTA clinics, and the marketing site makes explicit PIPEDA/CASL claims. PIPEDA permits cross-border processing, but it requires the organization to remain accountable and to be transparent about it — and a clinic owner asking "where does my client list go?" deserves a true answer.
+**Fixed by option (a): the agents are no longer given a direct identifier.** `first_name` was removed from `ClientFeatures` structurally — not merely filtered out of the prompt — so there is no field to reinstate by accident. What still leaves the process is lapse days, bucket, visit count, spend, VIP status and last service: those are *attributes*. A name is an *identifier*, and that distinction is exactly what a clinic owner is asking about when they ask where their client list goes.
 
-**Impact on the hackathon:** none. **Impact on the business:** the privacy policy and the FAQ's data-handling answer both become inaccurate the moment a real clinic's data flows through this.
+The copy is still personal. The approved templates already carried `{{first_name}}` in 27 places, so the outreach agent now treats it as a merge field like `{{clinic_name}}`, and `core/personalize.py` substitutes the real name **locally, in-process, on the way to the database**. The clinic's own merge fields are deliberately left alone.
 
-**Fix (before the first real tenant, not before the demo):** either
-(a) send only de-identified features to the model — the segment agent already receives computed numbers plus a first name, so dropping the name and rejoining locally is a small change and removes most of the exposure; or
-(b) pin to a regional model (`gemini-2.5-pro` in `northamerica-northeast1`) for production tenants while the hackathon build stays on global; or
-(c) keep global and update the privacy policy and clinic-facing FAQ to state cross-border processing plainly.
+Verified live end to end: the saved draft reads `Hi Dana, it's {{staff_name}} at {{clinic_name}}…` while the prompt that produced it contained no name, no phone and no email.
 
-Option (a) is preferred: it is the only one that makes the question moot rather than disclosed.
+The honest answer to "where do my clients' names go?" is now: they do not leave.
+
+**Residual exposure, stated rather than glossed:**
+- **Staff notes** may themselves contain personal detail. They are screened for injection (F-9) but not de-identified, because a note stripped of specifics is no longer worth including.
+- **`agent_decisions.input` still stores the full state, including the name.** That is Cloud SQL in `us-central1` — our own database, not the model endpoint — so it is outside this gap, but it means the decision log is not a record of the literal prompt.
+- **Cloud Logging entries carry `client_key`, which is a phone number.** Best-effort telemetry, not a model call, so again outside this gap — but it is a direct identifier in a second sink and worth a follow-up (log a masked key).
 
 ### GAP-009 — No reproducible deployment path
 **Category:** judging · **Status:** **CLOSED (f4ac6dc)** · **Spec:** [F-12](CLAUDE.md#f-12)

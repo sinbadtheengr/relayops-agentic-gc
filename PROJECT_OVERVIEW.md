@@ -74,6 +74,8 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **F-3 done (2026-08-16):** clinic export ingestion — synonym header matching across five booking systems, slashed-date disambiguation decided from the column, and every unusable row skipped with a named reason rather than defaulted. Re-importing updates in place. 268 tests green.
 
+**GAP-014 closed (2026-08-16):** the agents are given no direct identifier — `first_name` was removed from `ClientFeatures` structurally, and the real name is re-joined locally after generation via the `{{first_name}}` merge field the approved templates already used. Verified live: the draft reads "Hi Dana" while the prompt contained no name, phone or email.
+
 **All specified features are built.** Only Memory Bank remains, and it is contingent on the track decision (GAP-012).
 
 ## 6. Goals

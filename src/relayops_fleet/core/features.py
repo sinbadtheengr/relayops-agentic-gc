@@ -40,9 +40,17 @@ class ClientFeatures:
 
     Everything the model is allowed to reason over, and nothing it is allowed
     to recompute. `to_prompt_dict()` is what reaches the prompt.
+
+    **No direct identifier appears here on purpose.** There is no name, phone
+    or email. Gemini >=3.5 is served only from Vertex's `global` endpoint,
+    which routes to whichever region has capacity, so anything in this
+    dataclass may be processed outside Canada. Lapse, spend and visit counts
+    are attributes; a name is an identifier, and the difference is what a
+    clinic owner is actually asking about when they ask where their client
+    list goes. The name is re-joined locally after generation — see
+    `core.personalize`. (GAP-014)
     """
 
-    first_name: str
     days_lapsed: int
     lapse_bucket: str | None
     visit_count: int | None
@@ -94,7 +102,6 @@ def compute_vip_cutoff_cents(
 
 def compute_features(
     *,
-    first_name: str,
     last_visit: date,
     as_of: date,
     visit_count: int | None,
@@ -115,7 +122,6 @@ def compute_features(
         and lifetime_spend_cents >= vip_cutoff_cents
     )
     return ClientFeatures(
-        first_name=first_name,
         days_lapsed=days_lapsed,
         lapse_bucket=lapse_bucket(days_lapsed),
         visit_count=visit_count,

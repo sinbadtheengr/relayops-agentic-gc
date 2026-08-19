@@ -163,6 +163,8 @@ Two `LlmAgent`s. Segment uses `settings.gemini_segment_model` with `output_schem
 - `before_model_callback`: `sanitize_untrusted_fields` (F-9)
 - `after_model_callback`: `log_agent_decision` (F-10)
 
+**No direct identifier reaches a model (GAP-014).** `ClientFeatures` carries no name, phone or email — structurally, so there is no field to reinstate by accident. Gemini ≥3.5 is served only from the `global` Vertex endpoint, which routes anywhere, and lapse/spend/visit counts are attributes where a name is an identifier. The outreach agent addresses the client as `{{first_name}}`, exactly as the approved templates already did, and `core/personalize.py` substitutes the real name locally on the way to the database. The clinic's own merge fields are left untouched.
+
 **The authoritative-facts rule.** `core/features.py` computes `days_lapsed`, its bucket, `is_vip` (80th percentile **within the clinic**), `visit_count`, `lifetime_spend_cents`. The prompt states verbatim that these numbers are authoritative and must not be recomputed or contradicted. Port `compute_features` from `relayops-prod` `src/relayops/pipeline/segment_agent.py:86`; **discard** `decide()` (`:111`) and `build_graph()` (`:172`) — ADK replaces exactly those.
 
 **Offers come from `templates/campaign-templates.md`.** The agent adapts a template section; it never invents an offer, because an invented offer is one the clinic has not agreed to honour.

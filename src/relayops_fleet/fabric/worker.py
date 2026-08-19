@@ -35,6 +35,7 @@ from ..config import get_settings
 from ..core.casl import apply_copy_guards
 from ..core.features import compute_vip_cutoff_cents
 from ..core.gates import apply_gates
+from ..core.personalize import apply_merge_fields
 from ..db import campaign_repo, consent_repo
 from ..db.repo import build_engine, build_sessionmaker
 from ..obs.decisions import log_agent_decision, log_gate_decision
@@ -225,14 +226,20 @@ async def run_one_client(
     is_vip = bool(state[VIP_CUTOFF_CENTS]) and (client.lifetime_spend_cents or 0) >= vip_cutoff
     guarded = apply_copy_guards(out.output, is_vip=is_vip)
 
+    # 6. Re-join the client's name locally. The agent never learned it — see
+    #    core.personalize (GAP-014). Guards run first so they inspect the copy
+    #    the model actually produced, not a name that happens to contain a
+    #    word one of them looks for.
+    personalized = apply_merge_fields(guarded.draft, first_name=client.first_name)
+
     out_row = log_agent_decision(
         session,
         agent_name="outreach",
         clinic_id=clinic_id,
         client_key=client_key,
         inputs={**state, "staff_note_verdict": note_verdict, "staff_note_used": bool(note)},
-        output=guarded.draft.model_dump(),
-        reasoning=guarded.draft.reasoning,
+        output=personalized.model_dump(),
+        reasoning=personalized.reasoning,
         model=out.model,
         tokens=out.tokens,
         latency_ms=out.latency_ms,
@@ -243,7 +250,7 @@ async def run_one_client(
         clinic_id=clinic_id,
         client_key=client_key,
         channel="sms",
-        body=guarded.draft.sms,
+        body=personalized.sms,
         needs_review=guarded.needs_review,
         agent_decision_id=out_row.id,
     )
@@ -253,8 +260,8 @@ async def run_one_client(
             clinic_id=clinic_id,
             client_key=client_key,
             channel="email",
-            subject=guarded.draft.email_subject,
-            body=guarded.draft.email_body,
+            subject=personalized.email_subject,
+            body=personalized.email_body,
             needs_review=guarded.needs_review,
             agent_decision_id=out_row.id,
         )

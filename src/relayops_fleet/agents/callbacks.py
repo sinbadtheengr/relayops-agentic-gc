@@ -59,7 +59,6 @@ def build_client_features(state: Any) -> ClientFeatures:
         last_visit = date.fromisoformat(last_visit)
 
     return compute_features(
-        first_name=row["first_name"],
         last_visit=last_visit,
         as_of=as_of,
         visit_count=row.get("visit_count"),

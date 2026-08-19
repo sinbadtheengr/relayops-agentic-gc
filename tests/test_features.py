@@ -96,7 +96,6 @@ def test_vip_cutoff_selects_roughly_the_top_fifth() -> None:
 
 def _features(**overrides) -> ClientFeatures:
     kwargs = {
-        "first_name": "Dana",
         "last_visit": date(2026, 1, 3),
         "as_of": AS_OF,
         "visit_count": 7,
@@ -135,6 +134,18 @@ def test_prompt_dict_carries_the_cutoff_alongside_the_verdict() -> None:
     assert facts["is_vip"] is True
     assert facts["vip_cutoff_cents"] == 280_000
     assert facts["lifetime_spend_cents"] == 412_000
+
+
+def test_prompt_dict_carries_no_direct_identifier() -> None:
+    """Attributes may leave the process; identifiers may not.
+
+    Gemini >=3.5 is served only from the global Vertex endpoint, so anything
+    in here may be processed outside Canada (GAP-014). The name is re-joined
+    locally afterwards by core.personalize.
+    """
+    facts = _features().to_prompt_dict()
+    for identifier in ("first_name", "name", "phone", "client_key", "email"):
+        assert identifier not in facts
 
 
 def test_features_are_frozen() -> None:
