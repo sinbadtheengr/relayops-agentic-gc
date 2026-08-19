@@ -236,11 +236,15 @@ Verified live end to end against real Gemini and real Model Armor:
 ## Low
 
 ### GAP-013 — Cost ceiling is per-run, not per-month
-**Category:** ops · **Status:** OPEN
+**Category:** ops · **Status:** **PARTIALLY RESOLVED 2026-08-16**
 
 `SEGMENT_MAX_CLIENTS` / `OUTREACH_MAX_DRAFTS` cap one run. A misconfigured Scheduler firing hourly across tenants would still bill hourly. `DRY_RUN` defaults true, which limits the blast radius but is not a budget.
 
-**Fix:** a GCP budget alert during M1; a monthly token ceiling later.
+**Done — the alerting half.** A monthly budget scoped to `relayops-fleet` (50 CAD, calendar month) now emails billing admins at 50%, 90% and 100% of actual spend, plus at a **forecasted** 75% so a runaway loop is caught on the way up rather than after it lands.
+
+An existing `relayops` budget on the same billing account was scoped to a different project entirely and did **not** cover `relayops-fleet`, so fleet spend had been unmonitored since the project was created.
+
+**Still open — the ceiling half.** A budget alert notifies; it does not stop anything. Google Cloud has no native hard spend cap, so an actual ceiling means either a token counter the worker enforces itself before calling a model, or a billing-alert Pub/Sub hook that disables the Scheduler job. Neither is built, and the alert must not be mistaken for one.
 
 ---
 
