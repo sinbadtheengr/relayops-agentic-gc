@@ -188,7 +188,7 @@ The honest answer to "where do my clients' names go?" is now: they do not leave.
 ## Medium
 
 ### GAP-008 — No Model Armor, no per-role service accounts, no Memory Bank
-**Category:** governance · **Status:** **CLOSED (9b46d8a, 2a5e705)** · **Spec:** [F-9](CLAUDE.md#f-9), [F-9.3](CLAUDE.md#f-93--campaign-memory-agent-engine-memory-bank)
+**Category:** governance · **Status:** **CLOSED (9b46d8a, 5556c30)** · **Spec:** [F-9](CLAUDE.md#f-9), [F-9.3](CLAUDE.md#f-93--campaign-memory-agent-engine-memory-bank)
 
 **Per-role service accounts** (F-12): three, least privilege, with `relayops-dashboard` holding exactly `cloudsql.client` + `secretmanager.secretAccessor` and **no `aiplatform.user`** — the approval surface approves, it cannot generate.
 
@@ -213,7 +213,7 @@ Verified live end to end against real Gemini and real Model Armor:
 - `gcloud model-armor templates list|create` returns `PERMISSION_DENIED` on a project where the REST API works fine — it targets a different host. Templates are created via REST in `deploy.sh`.
 - **The layer was inert when first wired.** `worker.py` never put `notes` into the agent state, so every note reported `absent` and nothing was ever screened. Caught only by running it end to end against the seeded payload; no unit test would have noticed, because each half was individually correct.
 
-**Memory Bank is now built** (2a5e705), the Fleet track having been settled. Per-clinic campaign memory: what converted at a clinic is recomputed from the append-only outcome log, stored in Agent Engine Memory Bank under that clinic's scope, and read back into the next outreach prompt as advisory context.
+**Memory Bank is now built** (5556c30), the Fleet track having been settled. Per-clinic campaign memory: what converted at a clinic is recomputed from the append-only outcome log, stored in Agent Engine Memory Bank under that clinic's scope, and read back into the next outreach prompt as advisory context.
 
 Verified live against the real service on `relayops-fleet`:
 
