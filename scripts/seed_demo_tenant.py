@@ -82,14 +82,18 @@ IN_COOLDOWN = "+14165550110"
 # Same clients rather than new ones, deliberately — adding clients would move
 # the clinic's 80th-percentile VIP cutoff and quietly re-tier the demo.
 #
-# (phone, channel, showed)
-PRIOR_WAVE: list[tuple[str, str, bool]] = [
-    ("+14165550101", "sms", True),  # Dana, VIP -> Segment D converted
-    ("+14165550108", "sms", False),  # Noor, VIP -> Segment D did not
-    ("+14165550102", "sms", True),  # Priya, standard
-    ("+14165550103", "sms", True),  # Marcus, standard
-    ("+14165550104", "sms", False),  # Elena, standard
-    ("+14165550107", "email", False),  # Rafa, standard, email
+# An explicit no_show is seeded too: F-11 displays excluded outcomes with
+# their reasons, and a demo tenant where nothing is ever excluded hides the
+# half of the invoice a clinic actually argues with.
+#
+# (phone, channel, outcome or None)
+PRIOR_WAVE: list[tuple[str, str, str | None]] = [
+    ("+14165550101", "sms", "showed"),  # Dana, VIP -> Segment D converted
+    ("+14165550108", "sms", "no_show"),  # Noor, VIP -> booked, did not attend
+    ("+14165550102", "sms", "showed"),  # Priya, standard
+    ("+14165550103", "sms", "showed"),  # Marcus, standard
+    ("+14165550104", "sms", None),  # Elena, standard -> no outcome at all
+    ("+14165550107", "email", None),  # Rafa, standard, email -> no outcome
 ]
 PRIOR_WAVE_CONTACTED_DAYS_AGO = 25
 PRIOR_WAVE_SHOW_DAYS_AGO = 5
@@ -145,8 +149,9 @@ def seed(*, reset: bool) -> None:
 
         print(f"seeded {CLINIC_NAME} (clinic_id={clinic.id}) with {len(CLIENTS)} clients")
         print(f"  opted out: {OPTED_OUT}   in cooldown: {IN_COOLDOWN}")
-        print(f"  prior wave: {len(PRIOR_WAVE)} contacted, "
-              f"{sum(1 for _, _, showed in PRIOR_WAVE if showed)} showed")
+        shows = sum(1 for _, _, outcome in PRIOR_WAVE if outcome == "showed")
+        print(f"  prior wave: {len(PRIOR_WAVE)} contacted, {shows} showed, "
+              f"1 no-show (an invoice exclusion)")
     engine.dispose()
 
 
@@ -164,7 +169,7 @@ def _seed_prior_wave(session, *, clinic_id: int) -> None:
     lapses = {phone: lapsed for _, phone, lapsed, _, _, _, _ in CLIENTS}
     vip_cutoff = compute_vip_cutoff_cents(list(spends.values()))
 
-    for phone, channel, showed in PRIOR_WAVE:
+    for phone, channel, outcome in PRIOR_WAVE:
         session.add(
             AgentDecision(
                 agent_name="outreach",
@@ -195,12 +200,12 @@ def _seed_prior_wave(session, *, clinic_id: int) -> None:
                 note="wave 0 (seeded history)",
             )
         )
-        if showed:
+        if outcome:
             session.add(
                 OutreachOutcome(
                     clinic_id=clinic_id,
                     client_key=phone,
-                    outcome="showed",
+                    outcome=outcome,
                     occurred_on=showed_on,
                 )
             )
