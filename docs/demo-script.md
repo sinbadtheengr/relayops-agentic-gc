@@ -19,10 +19,15 @@ python scripts/seed_demo_tenant.py --reset
 gcloud run jobs update relayops-publisher --project relayops-fleet --region us-central1 \
   --update-env-vars SEGMENT_MAX_CLIENTS=25
 
-# 3. Get the dashboard password (do NOT show this on camera).
+# 3. Rebuild the clinic's campaign memory from the seeded prior wave.
+#    Without this the memory verdict on camera reads "empty", which is
+#    honest but shows nothing. Takes seconds.
+python scripts/sync_campaign_memory.py
+
+# 4. Get the dashboard password (do NOT show this on camera).
 gcloud secrets versions access latest --secret relayops-dashboard-password --project relayops-fleet
 
-# 4. Open the dashboard. Cloud Run is IAM-only, so use the proxy —
+# 5. Open the dashboard. Cloud Run is IAM-only, so use the proxy —
 #    a browser cannot satisfy both the Bearer and Basic challenges.
 gcloud run services proxy relayops-dashboard --region us-central1 --project relayops-fleet
 ```
@@ -76,7 +81,7 @@ EOF
 
 > "These two clients were never contacted. One replied STOP months ago; one was messaged three days ago and is inside the cooldown. Both decisions were made in Python, before any model ran — look at the token column. **Zero.** The model was never asked, because whether someone *may* be contacted is not a judgement call I'm willing to delegate."
 
-## 2:10–2:50 · What the agents did produce
+## 2:10–2:40 · What the agents did produce
 
 **On screen:** the dashboard drafts queue.
 
@@ -90,7 +95,17 @@ Click **Why this draft?**
 
 > "Every draft links to the exact model call behind it: the model, the token count, the latency, and the facts it was shown. When a clinic owner asks why it said that to their client, the answer is a row, not a shrug."
 
-## 2:50–3:20 · The human gate
+## 2:40–2:55 · What it remembers *(Fleet track: Memory Bank)*
+
+Still on the decision view, point at `memory_verdict: used:3`, then show the facts in the input panel.
+
+> "This clinic ran a wave last month, and the outcomes are recorded. So before writing anything, the agent is told what actually converted here — Segment D copy by SMS to VIP clients: three contacted, two came back. That's computed from the outcome log, not remembered by the model."
+
+> "Two things about that memory. It's aggregate — no client is named in it, ever. And it's scoped to this clinic: another clinic's run cannot retrieve it, because the store matches the scope exactly. Cross-tenant memory is a data leak wearing a feature's clothes."
+
+> "And it can't change the offer. It's allowed to influence tone and channel. The approved template is still the only thing that can put an offer in a message."
+
+## 2:55–3:20 · The human gate
 
 Point at the approve button.
 
@@ -101,8 +116,9 @@ Point at the approve button.
 **Cloud Run console:** `relayops-worker`, `relayops-dashboard`, `relayops-publisher`.
 **Cloud SQL console:** `relayops-fleet-db`.
 **Cloud Scheduler:** `relayops-nightly`, ENABLED, `0 9 * * *`.
+**Vertex AI → Agent Engine:** `relayops-fleet-memory` — the Memory Bank host.
 
-> "Gemini 3.7 and 3.5 Flash on Vertex, two ADK agents, Cloud Run, Cloud SQL, Pub/Sub with dead-lettering, Cloud Scheduler. One script provisions all of it."
+> "Gemini 3.7 and 3.5 Flash on Vertex, two ADK agents, Agent Engine holding per-clinic memory, Cloud Run, Cloud SQL, Pub/Sub with dead-lettering, Cloud Scheduler. One script provisions all of it."
 
 ## 3:50–4:00 · Close
 

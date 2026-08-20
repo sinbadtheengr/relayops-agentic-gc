@@ -1,6 +1,6 @@
 # Devpost submission text
 
-Paste-ready. Track and category are the operator's call — see **Before submitting** at the end.
+Paste-ready. Filed under **The Fortified Enterprise Fleet**. The prize-category question is still the operator's — see **Before submitting** at the end.
 
 ---
 
@@ -29,6 +29,8 @@ Every night, for every clinic, the fleet fans out **one Pub/Sub message per laps
 5. **CASL guards** — pure Python. Guarantees the STOP line and unsubscribe footer, and flags discount language in a VIP draft.
 6. **A human.** Drafts land in an approval dashboard. Nothing is sent by a machine.
 
+Between runs, the fleet remembers. Once outcomes are recorded, what actually converted at a clinic — which approved template section, which channel, how many of those contacted came back — is recomputed from the outcome log and stored in that clinic's **Agent Engine Memory Bank** scope, then read back into the next run's prompts.
+
 ## What the agents are forbidden to do
 
 This is the design, not a disclaimer:
@@ -38,11 +40,17 @@ This is the design, not a disclaimer:
 - **They cannot send.** There is no send path in the repository.
 - **They cannot act unlogged.** Every model call — and every rule-based refusal — writes an `agent_decisions` row in the same transaction as the work it explains.
 
+- **They cannot write their own memory.** Campaign memory is composed in Python from enumerated values and integers. A memory is written once and injected into every later prompt, so model-authored text in one would be a stored prompt injection with an indefinite blast radius.
+
 Opt-outs are stored **globally** while cooldowns are stored **per clinic**. That asymmetry is deliberate: under-suppressing is a compliance risk, over-suppressing only costs a lead.
+
+Memory is scoped the same way, and for a blunter reason: cross-tenant memory is a data leak wearing a feature's clothes. Every read and write carries the clinic's scope, retrieval matches it exactly, and the facts are aggregates that name no individual.
 
 ## How I built it
 
 **Gemini 3.7 Flash** (segment) and **Gemini 3.5 Flash** (outreach) on **Vertex AI**, both with strict pydantic `response_schema` so any drift fails loudly. **Google ADK** for both agents. **Cloud Run** services for the worker and dashboard, a **Cloud Run Job** for the fan-out, **Pub/Sub** with dead-lettering, **Cloud SQL** (Postgres 16), **Cloud Scheduler**, **Secret Manager**, **Cloud Logging**. One `deploy.sh` provisions all of it.
+
+**Agent Engine** hosts the per-clinic Memory Bank, on a bare instance with no agent code deployed to it — Memory Bank is a property of the resource, not of an agent running on it.
 
 **Multi-tenancy is enforced, not promised.** A runtime guard rejects any SQL statement touching tenant data without a `clinic_id` predicate, before it reaches Postgres — cruder than row-level security and deliberately louder, because it fails on the developer who wrote the query rather than silently in production.
 
@@ -78,7 +86,7 @@ Model Armor on the clinic-supplied free-text `notes` column — a genuine inject
 
 ## Technologies used
 
-`Google ADK` · `Gemini 3.7 Flash` · `Gemini 3.5 Flash` · `Vertex AI` · `Cloud Run` · `Cloud Run Jobs` · `Cloud SQL (Postgres 16)` · `Pub/Sub` · `Cloud Scheduler` · `Secret Manager` · `Cloud Logging` · `Artifact Registry` · `Cloud Build` · `Python 3.12` · `FastAPI` · `SQLAlchemy` · `Alembic` · `pydantic` · `Jinja2`
+`Google ADK` · `Gemini 3.7 Flash` · `Gemini 3.5 Flash` · `Vertex AI` · `Vertex AI Agent Engine` · `Agent Engine Memory Bank` · `Model Armor` · `Cloud Run` · `Cloud Run Jobs` · `Cloud SQL (Postgres 16)` · `Pub/Sub` · `Cloud Scheduler` · `Secret Manager` · `Cloud Logging` · `Artifact Registry` · `Cloud Build` · `Python 3.12` · `FastAPI` · `SQLAlchemy` · `Alembic` · `pydantic` · `Jinja2`
 
 ## Data sources
 
@@ -98,6 +106,6 @@ It reuses **deterministic, non-agentic domain logic** ported from my own private
 
 ## Before submitting — decisions still open
 
-1. **Track.** Vertex AI Agent Engine deployed successfully during the day-one spike and exposes Memory Bank, which was the pre-registered condition for filing under **The Fortified Enterprise Fleet** (thinner field). **The Taskmaster** is the safe alternative and is equally true of the system.
+1. **Track — settled: The Fortified Enterprise Fleet.** All three named components are built: Agent Runtime (the ADK agents), Memory Bank (per-clinic campaign memory), and Agent Identity (three least-privilege service accounts, with the approval surface deliberately denied `aiplatform.user`).
 2. **Startup Excellence** ($20k) requires an incorporated organisation and a corporate email address. The Devpost registration currently uses a personal Gmail, and a RelayOps-branded Gmail does not qualify.
 3. **Optional bonus:** a public blog post or a `#AllThingsAgenticHackathon` social post. The "guard false-positives are bugs" story is the one worth writing up.

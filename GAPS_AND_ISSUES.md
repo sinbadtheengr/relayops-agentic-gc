@@ -188,7 +188,7 @@ The honest answer to "where do my clients' names go?" is now: they do not leave.
 ## Medium
 
 ### GAP-008 — No Model Armor, no per-role service accounts, no Memory Bank
-**Category:** governance · **Status:** **CLOSED (9b46d8a)** · **Spec:** [F-9](CLAUDE.md#f-9)
+**Category:** governance · **Status:** **CLOSED (9b46d8a, 2a5e705)** · **Spec:** [F-9](CLAUDE.md#f-9), [F-9.3](CLAUDE.md#f-93--campaign-memory-agent-engine-memory-bank)
 
 **Per-role service accounts** (F-12): three, least privilege, with `relayops-dashboard` holding exactly `cloudsql.client` + `secretmanager.secretAccessor` and **no `aiplatform.user`** — the approval surface approves, it cannot generate.
 
@@ -213,7 +213,27 @@ Verified live end to end against real Gemini and real Model Armor:
 - `gcloud model-armor templates list|create` returns `PERMISSION_DENIED` on a project where the REST API works fine — it targets a different host. Templates are created via REST in `deploy.sh`.
 - **The layer was inert when first wired.** `worker.py` never put `notes` into the agent state, so every note reported `absent` and nothing was ever screened. Caught only by running it end to end against the seeded payload; no unit test would have noticed, because each half was individually correct.
 
-**Memory Bank** remains unbuilt — it is contingent on the Fleet track decision (GAP-012), and the Agent Engine spike already proved the surface exists.
+**Memory Bank is now built** (2a5e705), the Fleet track having been settled. Per-clinic campaign memory: what converted at a clinic is recomputed from the append-only outcome log, stored in Agent Engine Memory Bank under that clinic's scope, and read back into the next outreach prompt as advisory context.
+
+Verified live against the real service on `relayops-fleet`:
+
+| check | result |
+|---|---|
+| write + scoped read for the demo clinic | 3 facts, verdict `used:3` |
+| a second clinic's scope, same store | only its own 1 fact |
+| a scope nobody has written under | 0 facts — retrieval is exact-match, not fuzzy |
+| memory reaches the outreach prompt | yes, and the VIP draft still carries no discount |
+
+**Four decisions worth the space:**
+
+- **Facts are composed in Python from enumerated values, never from model prose.** A memory is written once and injected into every later prompt, so model-authored text in one is a stored prompt injection with an indefinite blast radius — it outlives the run, the client, and anyone who might have recognised it. `SegmentResult` carries a bucket, a bool, a channel and two ints, and there is no code path from an agent's output into a fact.
+- **Aggregates, never per-client.** The unit is (lapse bucket, VIP, channel). GAP-014's reasoning, applied to a store that outlives the run that created it.
+- **A rate only above three contacts.** One client returning is not a 100% conversion rate. Below the threshold the fact states its raw counts and says it is too few to generalise from.
+- **It degrades to absent, which is the opposite of Model Armor and deliberately so.** Armor fails closed because it stands between attacker-controlled text and a prompt. Memory carries no attacker-controlled text by construction, so an outage costs tone guidance and nothing else; failing the run would trade a real outage for an imaginary risk. `absent`, `empty`, `used:<n>` and `unavailable` are four distinct verdicts on the decision row.
+
+**One trap, found by running it.** With `GOOGLE_CLOUD_PROJECT` unset the SDK falls back to the ADC default project and the failure surfaces as `404 The ReasoningEngine does not exist` — which sends you to check whether the instance was deleted, when the id was right all along. Same shape as F-1's false `Deploy failed`: the error names the wrong thing. `_require_project()` now says so plainly.
+
+**The host is a bare Agent Engine instance** (`relayops-fleet-memory`), created by `deploy.sh` step 5c with no agent code deployed to it — Memory Bank is a property of the Agent Engine resource, not of an agent running on it, so there is no serving container to bill for. `gcloud ai reasoning-engines` does not exist as a command; creation is REST, like Model Armor's templates.
 
 ### GAP-010 — No demo assets
 **Category:** judging · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Spec:** [F-13](CLAUDE.md#f-13)
@@ -227,9 +247,9 @@ Verified live end to end against real Gemini and real Model Armor:
 - The dashboard is IAM-only, so a browser cannot satisfy both the Bearer and Basic challenges. Use `gcloud run services proxy`.
 
 ### GAP-012 — Track choice and prize category undecided
-**Category:** submission · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Owner:** human, not a code model
+**Category:** submission · **Status:** **PARTIALLY RESOLVED 2026-08-20** (track settled; Startup Excellence still open) · **Owner:** human, not a code model
 
-1. **Track — evidence is in.** F-1 step 5 succeeded: Agent Engine deployed on the first real attempt, serves the production agent shape, and exposes Memory Bank (`add_session_to_memory`) plus managed sessions. The pre-registered decision rule was *Agent Engine works → Fleet*, so the recommendation is **The Fortified Enterprise Fleet** — thinner field, and three named components (Agent Runtime, Memory Bank, Agent Identity) are in hand rather than aspirational. Awaiting the operator's confirmation.
+1. **Track — SETTLED 2026-08-20: The Fortified Enterprise Fleet.** The operator confirmed, and the pre-registered rule (*Agent Engine works → Fleet*) had already fired at F-1 step 5. All three named components are now built rather than aspirational: **Agent Runtime** (the ADK agents, deployed on Cloud Run and verified on Agent Engine), **Memory Bank** (per-clinic campaign memory, GAP-008), and **Agent Identity** (three least-privilege service accounts, with the approval surface deliberately denied `aiplatform.user`).
 2. **Startup Excellence** ($20k) still open, and still only the operator can settle it: it requires an incorporated org and a corporate email address, and the Devpost registration uses a personal Gmail. The gcloud account is a RelayOps-branded Gmail, which is **not** a corporate address for this purpose.
 
 **Impact:** filing in the wrong category forfeits the most winnable prize.

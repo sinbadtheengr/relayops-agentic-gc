@@ -119,6 +119,38 @@ def test_outreach_message_includes_the_approved_section() -> None:
     assert "412000" in message
 
 
+def test_outreach_message_carries_campaign_memory_when_there_is_any() -> None:
+    """Memory reaches the prompt through state, installed by the caller."""
+    from relayops_fleet.agents.callbacks import CAMPAIGN_MEMORY
+
+    fact = "Segment D copy sent by SMS to VIP clients lapsed over a year: 5 contacted, 4 booked and showed within 30 days (80% of those contacted)."
+    message = outreach.build_outreach_message({**VIP_STATE, CAMPAIGN_MEMORY: [fact]})
+    assert fact in message
+    assert "TONE and EMPHASIS only" in message
+
+
+def test_outreach_memory_block_sits_after_the_approved_template() -> None:
+    """The block claims the section above is the only source of an offer.
+
+    That sentence is only true if the section is in fact above it, so the
+    ordering is part of the guarantee rather than a formatting preference.
+    """
+    from relayops_fleet.agents.callbacks import CAMPAIGN_MEMORY
+
+    fact = "Segment D copy sent by SMS to VIP clients lapsed over a year: 5 contacted, 4 booked and showed within 30 days (80% of those contacted)."
+    message = outreach.build_outreach_message({**VIP_STATE, CAMPAIGN_MEMORY: [fact]})
+    assert message.index("## Segment D") < message.index(fact)
+
+
+def test_outreach_message_is_unchanged_when_there_is_no_memory() -> None:
+    """A clinic with no history must not get an empty "what converted" heading."""
+    from relayops_fleet.agents.callbacks import CAMPAIGN_MEMORY
+
+    plain = outreach.build_outreach_message(VIP_STATE)
+    assert outreach.build_outreach_message({**VIP_STATE, CAMPAIGN_MEMORY: []}) == plain
+    assert "What has converted" not in plain
+
+
 def test_outreach_refuses_a_client_outside_the_lapse_buckets() -> None:
     """Such a client should never have reached outreach; drafting from an
     arbitrary template would be inventing an offer."""

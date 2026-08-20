@@ -118,6 +118,32 @@ MA_HOST="https://modelarmor.${REGION}.rep.googleapis.com/v1"
 MA_PARENT="projects/${PROJECT_ID}/locations/${REGION}"
 curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)"   -H "Content-Type: application/json"   "${MA_HOST}/${MA_PARENT}/templates?template_id=relayops-notes"   -d '{"filterConfig":{"piAndJailbreakFilterSettings":{"filterEnforcement":"ENABLED","confidenceLevel":"LOW_AND_ABOVE"},"maliciousUriFilterSettings":{"filterEnforcement":"ENABLED"}}}'   >/dev/null || true
 
+say "5c. Agent Engine instance for per-clinic campaign memory (F-9.3)"
+# A BARE instance: no agent code is deployed to it, because nothing runs on
+# it. It exists only to host Memory Bank, which is a property of the Agent
+# Engine resource rather than of any agent deployed to it. Creation takes
+# seconds and the resource has no serving container to bill for.
+#
+# NOTE: create via REST. `gcloud ai reasoning-engines ...` does not exist —
+# `gcloud ai` rejects it as an invalid choice, in the same family as the
+# Model Armor host confusion in 5b.
+#
+# Reused if one already exists: a second instance would be a second, silently
+# empty memory store, and the symptom would be an agent that had simply
+# forgotten everything.
+AE_HOST="https://${REGION}-aiplatform.googleapis.com/v1"
+AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-}"
+if [[ -z "$AGENT_ENGINE_ID" ]]; then
+  AGENT_ENGINE_ID="$(curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)"     "${AE_HOST}/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines"     | python -c "import json,sys; e=[r for r in (json.load(sys.stdin).get('reasoningEngines') or []) if r.get('displayName')=='relayops-fleet-memory']; print(e[0]['name'].rsplit('/',1)[-1] if e else '')")"
+fi
+if [[ -z "$AGENT_ENGINE_ID" ]]; then
+  CREATE_OP="$(curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)"     -H "Content-Type: application/json"     -d '{"displayName":"relayops-fleet-memory","description":"Memory Bank host for the RelayOps fleet (F-9.3). No agent code deployed."}'     "${AE_HOST}/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines")"
+  # The operation name carries the new id: .../reasoningEngines/<id>/operations/<op>
+  AGENT_ENGINE_ID="$(printf '%s' "$CREATE_OP"     | python -c "import json,sys; print(json.load(sys.stdin)['name'].split('/reasoningEngines/')[1].split('/')[0])")"
+fi
+echo "    Memory Bank host: reasoningEngines/${AGENT_ENGINE_ID}"
+
+# ---------------------------------------------------------------------------
 say "6. Pub/Sub topics, DLQ and push subscription"
 gcloud pubsub topics create "$TOPIC" --project "$PROJECT_ID" 2>/dev/null || true
 gcloud pubsub topics create "$DLQ_TOPIC" --project "$PROJECT_ID" 2>/dev/null || true
@@ -141,7 +167,7 @@ gcloud run deploy relayops-worker --project "$PROJECT_ID" --region "$REGION" \
   --service-account "relayops-worker@${PROJECT_ID}.iam.gserviceaccount.com" \
   --add-cloudsql-instances "$INSTANCE_CONN" \
   --set-secrets "DB_PASSWORD=${SECRET_ID}:latest" \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${VERTEX_LOCATION},GOOGLE_GENAI_USE_VERTEXAI=true,CLOUD_SQL_INSTANCE=${INSTANCE_CONN},DB_NAME=${DB_NAME},DB_USER=${DB_USER},PUBSUB_DLQ_TOPIC=${DLQ_TOPIC},DRY_RUN=false,MODEL_ARMOR_TEMPLATE=${MA_PARENT}/templates/relayops-notes" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${VERTEX_LOCATION},GOOGLE_GENAI_USE_VERTEXAI=true,CLOUD_SQL_INSTANCE=${INSTANCE_CONN},DB_NAME=${DB_NAME},DB_USER=${DB_USER},PUBSUB_DLQ_TOPIC=${DLQ_TOPIC},DRY_RUN=false,MODEL_ARMOR_TEMPLATE=${MA_PARENT}/templates/relayops-notes,AGENT_ENGINE_ID=${AGENT_ENGINE_ID},AGENT_ENGINE_LOCATION=${REGION}" \
   --args "uvicorn,relayops_fleet.fabric.worker:app,--host,0.0.0.0,--port,8080" \
   --no-allow-unauthenticated --quiet
 

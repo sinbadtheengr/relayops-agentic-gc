@@ -11,17 +11,25 @@ demo's strongest 60 seconds is the system declining to act:
   - a client in cooldown  -> gated, zero tokens
   - a VIP                 -> Segment D, no discount
   - a notes-field injection attempt -> F-9 target
+  - a prior wave with recorded outcomes -> what campaign memory learns from
 """
 from __future__ import annotations
 
 import argparse
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import text
 
 from relayops_fleet.config import get_settings
+from relayops_fleet.core.features import compute_vip_cutoff_cents
 from relayops_fleet.db import consent_repo, repo
-from relayops_fleet.db.models import Client, Clinic, ContactLog
+from relayops_fleet.db.models import (
+    AgentDecision,
+    Client,
+    Clinic,
+    ContactLog,
+    OutreachOutcome,
+)
 
 CLINIC_NAME = "Glow Aesthetics (demo)"
 AS_OF = date(2026, 8, 16)
@@ -64,6 +72,27 @@ CLIENTS: list[tuple[str, str, int, int, int, str | None, str | None]] = [
 
 OPTED_OUT = "+14165550109"
 IN_COOLDOWN = "+14165550110"
+
+# Last month's wave, so campaign memory (F-9.3) and the invoice have something
+# real to compute over. Two rules shape the numbers:
+#   - contacted 25 days ago: outside the 14-day cooldown, so these clients are
+#     still eligible today and the current demo cohort is unchanged;
+#   - shows 5 days ago: inside the 30-day attribution window, so they are
+#     billable and count as conversions.
+# Same clients rather than new ones, deliberately — adding clients would move
+# the clinic's 80th-percentile VIP cutoff and quietly re-tier the demo.
+#
+# (phone, channel, showed)
+PRIOR_WAVE: list[tuple[str, str, bool]] = [
+    ("+14165550101", "sms", True),  # Dana, VIP -> Segment D converted
+    ("+14165550108", "sms", False),  # Noor, VIP -> Segment D did not
+    ("+14165550102", "sms", True),  # Priya, standard
+    ("+14165550103", "sms", True),  # Marcus, standard
+    ("+14165550104", "sms", False),  # Elena, standard
+    ("+14165550107", "email", False),  # Rafa, standard, email
+]
+PRIOR_WAVE_CONTACTED_DAYS_AGO = 25
+PRIOR_WAVE_SHOW_DAYS_AGO = 5
 
 
 def seed(*, reset: bool) -> None:
@@ -112,10 +141,70 @@ def seed(*, reset: bool) -> None:
             ContactLog(clinic_id=clinic.id, client_key=IN_COOLDOWN, channel="sms", note="wave 1")
         )
         session.flush()
+        _seed_prior_wave(session, clinic_id=clinic.id)
 
         print(f"seeded {CLINIC_NAME} (clinic_id={clinic.id}) with {len(CLIENTS)} clients")
         print(f"  opted out: {OPTED_OUT}   in cooldown: {IN_COOLDOWN}")
+        print(f"  prior wave: {len(PRIOR_WAVE)} contacted, "
+              f"{sum(1 for _, _, showed in PRIOR_WAVE if showed)} showed")
     engine.dispose()
+
+
+def _seed_prior_wave(session, *, clinic_id: int) -> None:
+    """Contacts, outcomes and the decision rows that say which segment was used.
+
+    The decision rows are what campaign memory reads to know *which approved
+    template section* a contact was written from — without them a contact is
+    just a contact and teaches nothing. They are marked as seeded in their
+    reasoning so nobody mistakes them for a real model call.
+    """
+    contacted_at = datetime.now(UTC) - timedelta(days=PRIOR_WAVE_CONTACTED_DAYS_AGO)
+    showed_on = datetime.now(UTC).date() - timedelta(days=PRIOR_WAVE_SHOW_DAYS_AGO)
+    spends = {phone: spend for _, phone, _, _, spend, _, _ in CLIENTS}
+    lapses = {phone: lapsed for _, phone, lapsed, _, _, _, _ in CLIENTS}
+    vip_cutoff = compute_vip_cutoff_cents(list(spends.values()))
+
+    for phone, channel, showed in PRIOR_WAVE:
+        session.add(
+            AgentDecision(
+                agent_name="outreach",
+                clinic_id=clinic_id,
+                client_key=phone,
+                input={
+                    "client_row": {
+                        "last_visit": (AS_OF - timedelta(days=lapses[phone])).isoformat(),
+                        "visit_count": None,
+                        "lifetime_spend_cents": spends[phone],
+                    },
+                    "vip_cutoff_cents": vip_cutoff,
+                    "as_of": AS_OF.isoformat(),
+                },
+                output={},
+                reasoning="seeded prior-wave decision (synthetic demo history)",
+                model="gemini-3.5-flash",
+                tokens=0,
+                decided_by="model",
+            )
+        )
+        session.add(
+            ContactLog(
+                clinic_id=clinic_id,
+                client_key=phone,
+                channel=channel,
+                contacted_at=contacted_at,
+                note="wave 0 (seeded history)",
+            )
+        )
+        if showed:
+            session.add(
+                OutreachOutcome(
+                    clinic_id=clinic_id,
+                    client_key=phone,
+                    outcome="showed",
+                    occurred_on=showed_on,
+                )
+            )
+    session.flush()
 
 
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ Stated here because it shapes what gets built, not just how it is pitched.
 
 The last row is the one to build the video around. Nobody else will demo their agent declining to act.
 
-## 5. Current state (2026-08-16)
+## 5. Current state (2026-08-20)
 
 M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fleet` provisioned and billed with 10 APIs enabled; Gemini ≥3.5 reachable and returning strictly-valid `SegmentDecision`; an ADK agent carrying the real production shape (strict `output_schema` + `before_agent_callback` injecting Python-computed facts) **verified end to end on both Cloud Run and Agent Engine** — HTTP 200, exact schema match, injected facts cited, VIP correctly not discounted.
 
@@ -76,7 +76,11 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 
 **GAP-014 closed (2026-08-16):** the agents are given no direct identifier — `first_name` was removed from `ClientFeatures` structurally, and the real name is re-joined locally after generation via the `{{first_name}}` merge field the approved templates already used. Verified live: the draft reads "Hi Dana" while the prompt contained no name, phone or email.
 
-**All specified features are built.** Only Memory Bank remains, and it is contingent on the track decision (GAP-012).
+**F-9.3 done (2026-08-20):** per-clinic campaign memory on Agent Engine Memory Bank. What converted at a clinic is recomputed from the append-only outcome log, composed into de-identified aggregate facts in Python, stored under that clinic's scope, and read back into the next outreach prompt as advisory context that cannot introduce an offer. Verified live: two clinics in one store each see only their own facts, an unknown scope sees nothing, and the VIP draft still carries no discount with memory in the prompt. 266 tests green without infrastructure; 31 more against real Postgres.
+
+**Track settled (2026-08-20): The Fortified Enterprise Fleet.** All three named components are built — Agent Runtime, Memory Bank, and Agent Identity (three least-privilege service accounts).
+
+**All specified features are built.** What remains is the operator's: record the video, capture the console screenshots, and file the Devpost entry.
 
 ## 6. Goals
 
@@ -101,6 +105,7 @@ M1 complete, M2 in progress. **F-1 done (2026-08-16):** GCP project `relayops-fl
 | Async | Pub/Sub + DLQ | One message per client |
 | State | Cloud SQL Postgres 16 + Alembic | `0001` schema, `0002` email identifiers |
 | Safety | Model Armor | On CSV-derived free text only |
+| Memory | Agent Engine Memory Bank | Per-clinic scope, aggregate facts only (F-9.3) |
 | UI | FastAPI + Jinja2 | Server-rendered, no JS build step |
 
 ```bash
@@ -123,7 +128,9 @@ src/relayops_fleet/
     casl.py          STOP line, unsubscribe, VIP-discount + overclaim flags (F-5)
     importer.py      Jane/Fresha/Vagaro/Mindbody/Boulevard column synonyms (F-3)
     attribution.py   computed billing from the outcome log (F-11)
+    campaign_memory.py  what converted, composed as text (F-9.3)
   agents/            ADK agents + callbacks (F-7, F-9)
+    memory.py        per-clinic Memory Bank client (F-9.3)
   fabric/            publisher (fan-out) + worker (push handler) (F-6)
   db/                models, repo — every query clinic-scoped (F-2)
   obs/decisions.py   agent_decisions, mandatory before output is used (F-10)

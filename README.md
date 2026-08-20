@@ -36,17 +36,20 @@ Cloud Run Service: approval dashboard ──> same Cloud SQL   (no model access)
 
 | Layer | Choice |
 |---|---|
-| Model | Gemini 3.5 Pro (segment) / 3.5 Flash (outreach), Vertex AI |
+| Model | Gemini 3.7 Flash (segment) / 3.5 Flash (outreach), Vertex AI `global` endpoint |
 | Agent framework | Google ADK |
 | Compute | Cloud Run services + jobs |
 | Async | Pub/Sub fan-out, one message per client, with DLQ |
 | State | Cloud SQL (Postgres) + Alembic |
 | Safety | Model Armor on CSV-derived free text |
+| Memory | Agent Engine Memory Bank, scoped per clinic |
 | Trigger | Cloud Scheduler; Eventarc on GCS export upload |
 
 ## Status
 
-Scaffold. Features are specified in [CLAUDE.md](CLAUDE.md) as `F-x` IDs and tracked in [GAPS_AND_ISSUES.md](GAPS_AND_ISSUES.md) as `GAP-xxx`. Start with [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
+Built and deployed on Google Cloud. Every specified feature is implemented; what remains is the submission itself (video, console screenshots, Devpost entry).
+
+Features are specified in [CLAUDE.md](CLAUDE.md) as `F-x` IDs and tracked in [GAPS_AND_ISSUES.md](GAPS_AND_ISSUES.md) as `GAP-xxx`. Start with [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 
 ## Spin-up
 

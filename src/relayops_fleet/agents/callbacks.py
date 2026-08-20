@@ -30,6 +30,12 @@ TEMPLATE_SECTION = "template_section"
 SEGMENT_DECISION = "segment_decision"
 STAFF_NOTE = "staff_note"
 NOTE_VERDICT = "note_verdict"
+CLINIC_ID = "clinic_id"
+# Clinic-scoped campaign memory (F-9.3). Installed by the caller rather
+# than computed in a callback: it is one retrieval per clinic per run, not
+# a fact about this client, and its verdict has to reach the decision row.
+CAMPAIGN_MEMORY = "campaign_memory"
+MEMORY_VERDICT = "memory_verdict"
 
 
 class MissingAgentInput(RuntimeError):

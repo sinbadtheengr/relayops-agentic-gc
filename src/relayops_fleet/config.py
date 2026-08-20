@@ -76,6 +76,9 @@ class Settings:
     attribution_window_days: int
     show_fee_cents: int
     fee_cap_cents: int
+    # Agent Engine (Fleet track): Memory Bank host
+    agent_engine_id: str
+    agent_engine_location: str
     # Operator surfaces
     dashboard_password: str
     public_base_url: str
@@ -111,6 +114,11 @@ def get_settings() -> Settings:
         attribution_window_days=int(os.environ.get("ATTRIBUTION_WINDOW_DAYS", "30")),
         show_fee_cents=int(os.environ.get("SHOW_FEE_CENTS", "5000")),
         fee_cap_cents=int(os.environ.get("FEE_CAP_CENTS", "150000")),
+        agent_engine_id=os.environ.get("AGENT_ENGINE_ID", "").strip(),
+        # NOT google_cloud_location. Agent Engine is regional and Gemini >=3.5
+        # is global; F-1 rule 2 cost a day to exactly this confusion, so the
+        # two never share a variable.
+        agent_engine_location=os.environ.get("AGENT_ENGINE_LOCATION", "us-central1"),
         dashboard_password=os.environ.get("DASHBOARD_PASSWORD", ""),
         public_base_url=os.environ.get("PUBLIC_BASE_URL", "").rstrip("/"),
         model_armor_template=os.environ.get("MODEL_ARMOR_TEMPLATE", "").strip(),

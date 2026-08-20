@@ -28,7 +28,15 @@ from fastapi import FastAPI, Request, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from ..agents.callbacks import AS_OF, CLIENT_ROW, VIP_CUTOFF_CENTS, screen_staff_note
+from ..agents.callbacks import (
+    AS_OF,
+    CAMPAIGN_MEMORY,
+    CLIENT_ROW,
+    CLINIC_ID,
+    VIP_CUTOFF_CENTS,
+    screen_staff_note,
+)
+from ..agents.memory import retrieve_clinic_memories
 from ..agents.outreach import run_outreach
 from ..agents.segment import run_segment
 from ..config import get_settings
@@ -170,6 +178,7 @@ async def run_one_client(
         campaign_repo.clinic_spends(session, clinic_id=clinic_id)
     )
     state = {
+        CLINIC_ID: clinic_id,
         CLIENT_ROW: {
             "first_name": client.first_name,
             "last_visit": client.last_visit.isoformat(),
@@ -222,6 +231,14 @@ async def run_one_client(
     #    the verdict is recorded either way, so "the model never saw it" and
     #    "there was nothing to see" do not look identical in the audit trail.
     note, note_verdict = screen_staff_note(state)
+
+    # Clinic-scoped campaign memory (F-9.3). Retrieved here rather than inside
+    # the agent because the verdict belongs on the decision row: a draft that
+    # read differently because the memory store was unreachable has to be
+    # explainable afterwards, and "absent" must not look like "unavailable".
+    recall = await retrieve_clinic_memories(clinic_id)
+    state[CAMPAIGN_MEMORY] = list(recall.facts)
+
     out = await run_outreach(dict(state))
     is_vip = bool(state[VIP_CUTOFF_CENTS]) and (client.lifetime_spend_cents or 0) >= vip_cutoff
     guarded = apply_copy_guards(out.output, is_vip=is_vip)
@@ -237,7 +254,12 @@ async def run_one_client(
         agent_name="outreach",
         clinic_id=clinic_id,
         client_key=client_key,
-        inputs={**state, "staff_note_verdict": note_verdict, "staff_note_used": bool(note)},
+        inputs={
+            **state,
+            "staff_note_verdict": note_verdict,
+            "staff_note_used": bool(note),
+            "memory_verdict": recall.verdict,
+        },
         output=personalized.model_dump(),
         reasoning=personalized.reasoning,
         model=out.model,
