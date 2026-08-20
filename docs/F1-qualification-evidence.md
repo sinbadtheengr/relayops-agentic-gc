@@ -1,6 +1,6 @@
 # F-1 qualification evidence
 
-**Run:** 2026-08-15 · **Project:** `relayops-prod` (525399925354) · **Account:** relayops.ca@gmail.com
+**Run:** 2026-08-15 · **Project:** `relayops-prod` (525399925354)
 **Reproduce:** `PYTHONPATH=src python scripts/spike_f1.py`
 
 ---

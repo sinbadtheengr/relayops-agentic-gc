@@ -86,7 +86,7 @@ Dead-letter topic on the fan-out; idempotent writes on `(clinic, client_key, cha
 
 ### Decision B — Startup Excellence eligibility
 
-$20,000, and it requires *"an organization which must be incorporated"* plus *"your corporate email address."* You're currently registered under `sean.relleve@gmail.com`.
+$20,000, and it requires *"an organization which must be incorporated"* plus *"your corporate email address."* You're currently registered under a personal Gmail address.
 
 If RelayOps is incorporated, set up a corporate mailbox on the RelayOps domain **this week** and file under Startup Excellence — the field there is a fraction of the open tracks. If it isn't, you're in Individual/Hobbyist ($10k × 2), which is also a smaller field than the main tracks. Confirm which before writing the Devpost page.
 

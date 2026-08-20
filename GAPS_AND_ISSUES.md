@@ -230,7 +230,7 @@ Verified live end to end against real Gemini and real Model Armor:
 **Category:** submission · **Status:** **PARTIALLY RESOLVED 2026-08-16** · **Owner:** human, not a code model
 
 1. **Track — evidence is in.** F-1 step 5 succeeded: Agent Engine deployed on the first real attempt, serves the production agent shape, and exposes Memory Bank (`add_session_to_memory`) plus managed sessions. The pre-registered decision rule was *Agent Engine works → Fleet*, so the recommendation is **The Fortified Enterprise Fleet** — thinner field, and three named components (Agent Runtime, Memory Bank, Agent Identity) are in hand rather than aspirational. Awaiting the operator's confirmation.
-2. **Startup Excellence** ($20k) still open, and still only the operator can settle it: it requires an incorporated org and a corporate email address, and the Devpost registration uses a personal Gmail. The gcloud account is `relayops.ca@gmail.com` — a RelayOps-branded Gmail is **not** a corporate address for this purpose.
+2. **Startup Excellence** ($20k) still open, and still only the operator can settle it: it requires an incorporated org and a corporate email address, and the Devpost registration uses a personal Gmail. The gcloud account is a RelayOps-branded Gmail, which is **not** a corporate address for this purpose.
 
 **Impact:** filing in the wrong category forfeits the most winnable prize.
 
