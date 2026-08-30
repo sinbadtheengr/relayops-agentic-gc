@@ -80,7 +80,11 @@ The broader lesson: **the constraints made the product, not just the compliance 
 
 ## What's next
 
-Model Armor on the clinic-supplied free-text `notes` column — a genuine injection surface, since that text reaches a prompt. Attribution and the invoice view. Then onboarding a real clinic, which is what this was for.
+**Onboarding a real clinic**, which is what this was for. A tenant is a row and an import; the September pilot runs on this system rather than on me.
+
+**A spend ceiling that actually stops something.** There is a budget alert on the project, and an alert is not a cap — it notifies after the money is gone. Google Cloud has no native hard limit, so this means either a token counter the worker enforces before it calls a model, or a billing hook that disables the Scheduler job. The per-run caps bound one night; they do not bound a misconfigured schedule.
+
+**Proving the deploy script from nothing.** Every step in `deploy.sh` was written the moment I first ran it by hand, and each is idempotent — but I have not yet provisioned a second empty project end to end to prove the claim. Until I have, it is a well-founded belief rather than a verified one, and I would rather say so.
 
 ---
 
