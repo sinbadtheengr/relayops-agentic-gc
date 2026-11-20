@@ -1,3 +1,5 @@
+> **ARCHIVED — superseded by relayops-prod**
+
 # RelayOps Revenue Recovery Fleet
 
 **A multi-tenant background agent fleet that turns a med spa's booking-software export into approved, CASL-compliant win-back campaigns — and into a defensible invoice.**
