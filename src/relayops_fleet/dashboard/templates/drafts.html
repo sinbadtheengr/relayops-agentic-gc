@@ -18,8 +18,8 @@
       <strong>{{ d.client_key }}</strong> · {{ d.channel }}
       {% if d.needs_review %}<span class="badge">NEEDS REVIEW</span>{% endif %}
     </div>
-    {% if d.subject %}<div class="meta">Subject: {{ d.subject }}</div>{% endif %}
-    <pre>{{ d.body }}</pre>
+    {% if d.subject and d.id not in withheld %}<div class="meta">Subject: {{ d.subject }}</div>{% endif %}
+    <pre>{% if d.id in withheld %}Withheld. Consent expired or the recipient opted out.{% else %}{{ d.body }}{% endif %}</pre>
     <p style="margin:12px 0 0">
       {% if d.status == 'draft' %}
         <form method="post" action="/clinics/{{ clinic.id }}/drafts/{{ d.id }}/approve">

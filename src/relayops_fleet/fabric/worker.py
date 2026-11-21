@@ -149,6 +149,13 @@ async def run_one_client(
         opted_out_emails=opted_out_emails,
         recently_contacted_phones=cooldown,
     )
+    from relayops_fleet.db.marketing_consent import consent_id
+    sms_ok = consent_id(session, clinic_id, client.client_key, as_of)
+    email_ok = consent_id(session, clinic_id, client.email, as_of)
+    if gate.passed and not sms_ok and not email_ok:
+        from relayops_fleet.core.gates import GateResult
+        gate = GateResult(passed=False, reason="no_documented_consent", client_key=gate.client_key)
+
     if not gate.passed:
         decision = log_gate_decision(
             session,
@@ -267,16 +274,17 @@ async def run_one_client(
         latency_ms=out.latency_ms,
     )
 
-    campaign_repo.upsert_draft(
-        session,
-        clinic_id=clinic_id,
-        client_key=client_key,
-        channel="sms",
-        body=personalized.sms,
-        needs_review=guarded.needs_review,
-        agent_decision_id=out_row.id,
-    )
-    if client.email:
+    if sms_ok:
+        campaign_repo.upsert_draft(
+            session,
+            clinic_id=clinic_id,
+            client_key=client_key,
+            channel="sms",
+            body=personalized.sms,
+            needs_review=guarded.needs_review,
+            agent_decision_id=out_row.id,
+        )
+    if email_ok:
         campaign_repo.upsert_draft(
             session,
             clinic_id=clinic_id,

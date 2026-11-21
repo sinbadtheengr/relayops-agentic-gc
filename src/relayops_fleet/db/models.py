@@ -53,6 +53,8 @@ class Clinic(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    mailing_address: Mapped[str | None] = mapped_column(Text)
+    contact_email: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -334,10 +336,25 @@ class OutreachOutcome(Base):
     )
 
 
+class MarketingConsent(Base):
+    __tablename__ = "marketing_consent"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    clinic_id: Mapped[int] = mapped_column(Integer, ForeignKey("clinics.id", ondelete="CASCADE"))
+    destination: Mapped[str] = mapped_column(Text)
+    basis: Mapped[str] = mapped_column(Text)
+    event_date: Mapped[date] = mapped_column(Date)
+    evidence: Mapped[str] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    role_relevance: Mapped[str | None] = mapped_column(Text)
+    unrestricted: Mapped[bool] = mapped_column(Boolean, default=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 # Tables that carry consumer PII scoped to a tenant. The isolation test in
 # tests/test_tenant_isolation.py asserts every one of these has a clinic_id
 # column, so adding a table here without scoping it fails CI.
 TENANT_SCOPED_TABLES = (
+    MarketingConsent.__tablename__,
     Client.__tablename__,
     AgentDecision.__tablename__,
     ClientDecision.__tablename__,

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -96,17 +97,32 @@ def record_opt_out(
     if phone_norm is None and email_norm is None:
         raise ValueError("an opt-out needs a valid phone or an email")
 
+    # A repeat on one identifier can introduce a newly disclosed second one.
+    # Insert each independently so both are suppressed, even on concurrent retries.
     with unguarded():
-        existing = session.execute(
-            select(OptOut).where(
-                (OptOut.client_key == phone_norm) if phone_norm else (OptOut.email == email_norm)
-            )
-        ).scalar_one_or_none()
-    if existing is not None:
-        # Idempotent: a second STOP from the same number is not an error, and
-        # must not raise on the partial unique index.
-        return existing
+        for column, value in ((OptOut.client_key, phone_norm), (OptOut.email, email_norm)):
+            if value:
+                session.execute(insert(OptOut).values(
+                    {column.key:value, "reason":reason, "source":source}
+                ).on_conflict_do_nothing())
+        criterion = OptOut.client_key == phone_norm if phone_norm else OptOut.email == email_norm
+        return session.scalars(select(OptOut).where(criterion)).one()
 
-    row = OptOut(client_key=phone_norm, email=email_norm, reason=reason, source=source)
-    session.add(row)
-    return row
+
+def main():
+    import argparse
+    from .repo import build_engine
+
+    parser = argparse.ArgumentParser(description="Record an email unsubscribe or SMS withdrawal")
+    parser.add_argument("--email")
+    parser.add_argument("--phone")
+    parser.add_argument("--source", required=True, choices=["email", "sms", "manual"])
+    parser.add_argument("--reason", required=True, help="Receipt time and reference to the request")
+    args = parser.parse_args()
+    with Session(build_engine()) as session:
+        record_opt_out(session, **vars(args))
+        session.commit()
+
+
+if __name__ == "__main__":
+    main()

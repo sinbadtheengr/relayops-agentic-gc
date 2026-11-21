@@ -24,6 +24,7 @@ GateReason = Literal[
     "suppressed",
     "cooldown",
     "no_last_visit",
+    "no_documented_consent",
     "passed",
 ]
 

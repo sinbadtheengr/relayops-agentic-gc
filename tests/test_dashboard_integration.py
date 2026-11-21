@@ -105,6 +105,9 @@ def seeded(engine):
             )
         )
         s.flush()
+        from relayops_fleet.db.marketing_consent import record
+        record(s, clinic.id, PHONE, "express", date.today(), "dashboard fixture")
+        s.execute(text("UPDATE clinics SET mailing_address='1 Test Road',contact_email='desk@example.test' WHERE id=:id"), {"id":clinic.id})
         ids = (clinic.id, other.id, draft.id)
     return ids
 

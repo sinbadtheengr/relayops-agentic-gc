@@ -99,3 +99,15 @@ Per hackathon rules, this project was newly created during the submission period
 ## License
 
 MIT
+
+## Marketing consent and withdrawals
+
+Apply the Alembic migration before starting the updated workers or dashboard. Existing records start without evidence. Record evidence for the actual sending clinic and each email address or phone number. A visit date by itself is insufficient. Keep the original consent record or invoice referenced by the evidence. Purchase and inquiry records expire after two calendar years and six calendar months respectively. At a month-end boundary the service withholds on the anniversary date. Express consent continues until withdrawal. Use publication only for a role-relevant message to an address published by or for the recipient without a solicitation restriction. Retain a dated copy of that publication.
+
+Use a monitored two-way sending number and reply inbox. Record all withdrawal requests immediately and reconcile both channels with the suppression register. Verify with controlled recipients after deployment. Keep unsubscribe and contact mechanisms available for at least 60 days after delivery and process withdrawals without delay, within 10 business days. A downloaded CSV is a point-in-time export. Recheck eligibility before any later external send.
+
+[CRTC guidance](https://crtc.gc.ca/eng/com500/faq500.htm)
+
+Use `python -m relayops_fleet.db.marketing_consent --help` to record a clinic grant and `python -m relayops_fleet.db.clinic_identity --help` for the sending clinic’s address and monitored contact. Re-review outstanding approvals after migration. The fleet workflow produces drafts for manual delivery.
+
+Use `python -m relayops_fleet.db.consent_repo --help` to immediately suppress a reply or STOP request in the fleet database.

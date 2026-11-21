@@ -65,7 +65,8 @@ def test_guards_are_idempotent() -> None:
 
 
 def test_compliant_draft_is_left_alone() -> None:
-    compliant = draft(sms=f"Hi Dana! {STOP_LINE}.", body=f"Hi Dana,\n\n{EMAIL_FOOTER}")
+    from relayops_fleet.core.casl import CLINIC_IDENTITY
+    compliant = draft(sms=f"{CLINIC_IDENTITY}. Hi Dana! {STOP_LINE}.", body=f"Hi Dana,\n\n{EMAIL_FOOTER}")
     out = enforce_casl(compliant)
     assert out.sms == compliant.sms
     assert out.email_body == compliant.email_body

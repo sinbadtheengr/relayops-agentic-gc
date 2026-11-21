@@ -25,7 +25,8 @@ from dataclasses import dataclass
 from ..schemas import OutreachDraftSet
 
 STOP_LINE = "Reply STOP to opt out"
-EMAIL_FOOTER = "{{clinic_name}} · {{clinic_address}} · Unsubscribe"
+CLINIC_IDENTITY = "{{clinic_name}} · {{clinic_address}} · {{clinic_contact}}"
+EMAIL_FOOTER = CLINIC_IDENTITY + ". Unsubscribe by replying STOP."
 NEEDS_REVIEW = "[NEEDS REVIEW"
 
 # Negated forms are stripped before any guard runs.
@@ -124,13 +125,16 @@ def enforce_casl(draft: OutreachDraftSet) -> OutreachDraftSet:
     Idempotent — a redelivered Pub/Sub message must not stack two STOP lines.
     """
     sms = draft.sms.rstrip()
+    if CLINIC_IDENTITY not in sms:
+        sms = f"{CLINIC_IDENTITY}. {sms}"
     if STOP_LINE.lower() not in sms.lower():
         if sms and not sms.endswith((".", "!", "?")):
             sms = f"{sms}."
         sms = f"{sms} {STOP_LINE}.".strip()
 
     body = draft.email_body.rstrip()
-    if "unsubscribe" not in body.lower():
+    body = body.replace("{{clinic_name}} · {{clinic_address}} · Unsubscribe", EMAIL_FOOTER)
+    if EMAIL_FOOTER not in body:
         body = f"{body}\n\n{EMAIL_FOOTER}"
 
     return draft.model_copy(update={"sms": sms, "email_body": body})

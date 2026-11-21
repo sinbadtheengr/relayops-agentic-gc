@@ -132,6 +132,21 @@ def drafts(
     status_filter: str = "draft",
 ):
     clinic = _clinic_or_404(session, clinic_id)
+    drafts = dashboard_repo.drafts_for_clinic(session, clinic_id=clinic_id, status=status_filter)
+    withheld = set()
+    if status_filter == "approved":
+        from sqlalchemy import text
+        from relayops_fleet.db.marketing_consent import VALID
+        current = VALID.replace(":day", "CURRENT_DATE")
+        withheld = set(session.scalars(text(f"""
+            SELECT d.id FROM outreach_drafts d
+            LEFT JOIN clients c ON c.clinic_id=d.clinic_id AND c.client_key=d.client_key
+            WHERE d.clinic_id=:clinic_id AND d.status='approved' AND (
+                NOT EXISTS (SELECT 1 FROM marketing_consent WHERE {current}
+                    AND destination=CASE d.channel WHEN 'sms' THEN c.client_key ELSE lower(trim(c.email)) END)
+                OR EXISTS (SELECT 1 FROM opt_outs o WHERE
+                    o.client_key=c.client_key OR o.email=lower(trim(c.email))))
+        """), {"clinic_id":clinic_id}))
     return TEMPLATES.TemplateResponse(
         request,
         "drafts.html",
@@ -139,9 +154,8 @@ def drafts(
             "clinic": clinic,
             "counts": dashboard_repo.draft_counts(session, clinic_id=clinic_id),
             "status_filter": status_filter,
-            "drafts": dashboard_repo.drafts_for_clinic(
-                session, clinic_id=clinic_id, status=status_filter
-            ),
+            "drafts": drafts,
+            "withheld": withheld,
             "statuses": dashboard_repo.DRAFT_STATUSES,
         },
     )
@@ -228,6 +242,20 @@ def _set_status(session: Session, *, clinic_id: int, draft_id: int, new_status: 
         raise HTTPException(status_code=404, detail="no such draft")
 
 
+def _eligible(session, clinic_id, draft):
+    from datetime import date
+    from relayops_fleet.db import campaign_repo
+    from relayops_fleet.db.marketing_consent import consent_id
+    client = campaign_repo.get_client(session, clinic_id=clinic_id, client_key=draft.client_key)
+    if not client:
+        return False
+    phones, emails = consent_repo.load_opt_outs(session)
+    email = (client.email or "").strip().lower()
+    dest = client.client_key if draft.channel == "sms" else email
+    return (client.client_key not in phones and email not in emails
+            and consent_id(session, clinic_id, dest, date.today()) is not None)
+
+
 @app.post("/clinics/{clinic_id}/drafts/{draft_id}/approve")
 def approve(
     clinic_id: int,
@@ -236,6 +264,27 @@ def approve(
     session: Annotated[Session, Depends(get_session)],
 ):
     """Mark approved. **This does not send anything.**"""
+    from sqlalchemy import text
+    from relayops_fleet.core.casl import CLINIC_IDENTITY
+    draft = dashboard_repo.get_draft(session, clinic_id=clinic_id, draft_id=draft_id)
+    if draft is None:
+        raise HTTPException(404, "no such draft")
+    if not _eligible(session, clinic_id, draft):
+        raise HTTPException(409, "No current consent for this clinic and destination")
+    clinic = session.execute(text("SELECT name,mailing_address,contact_email FROM clinics WHERE id=:id"),
+                             {"id":clinic_id}).mappings().one()
+    if not clinic["mailing_address"] or not clinic["contact_email"]:
+        raise HTTPException(409, "Configure this clinic's mailing address and contact email")
+    identity = f"{clinic['name']} · {clinic['mailing_address']} · {clinic['contact_email']}"
+    body = draft.body.replace(CLINIC_IDENTITY, identity)
+    for key,col in (("clinic_name","name"),("clinic_address","mailing_address"),("clinic_contact","contact_email")):
+        body = body.replace("{{" + key + "}}", clinic[col])
+    if identity not in body:
+        body += "\n\n" + identity
+    if "reply stop" not in body.lower() and "replying stop" not in body.lower():
+        body += ". Reply STOP to unsubscribe."
+    session.execute(text("UPDATE outreach_drafts SET body=:body WHERE clinic_id=:clinic_id AND id=:id"),
+                    {"body":body,"clinic_id":clinic_id,"id":draft_id})
     _set_status(session, clinic_id=clinic_id, draft_id=draft_id, new_status="approved")
     session.commit()
     return RedirectResponse(f"/clinics/{clinic_id}/drafts", status_code=303)
